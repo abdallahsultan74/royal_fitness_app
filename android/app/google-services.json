@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1023415771114",
+    "project_id": "royalfitness-306e4",
+    "storage_bucket": "royalfitness-306e4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1023415771114:android:80142876e20b57964e1c93",
+        "android_client_info": {
+          "package_name": "com.royalfitness.royal_fitness"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCykYsqkzQ-dWxraF65qkoVPb-1OLbWO_8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
