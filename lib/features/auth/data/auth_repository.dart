@@ -57,4 +57,27 @@ class AuthRepository {
   }
 
   Future<void> signOut() => _auth.signOut();
+
+  /// Sends a password recovery email. [redirectTo] must be whitelisted in Supabase.
+  Future<void> resetPasswordForEmail(
+    String email, {
+    String? redirectTo,
+  }) async {
+    final emailTrim = email.trim();
+    if (emailTrim.isEmpty) {
+      throw Exception('EMAIL_REQUIRED');
+    }
+    await _auth.resetPasswordForEmail(
+      emailTrim,
+      redirectTo: redirectTo,
+    );
+  }
+
+  /// Sets a new password for the current session (including recovery flow).
+  Future<void> updatePassword(String newPassword) async {
+    if (newPassword.length < 6) {
+      throw Exception('WEAK_PASSWORD');
+    }
+    await _auth.updateUser(UserAttributes(password: newPassword));
+  }
 }

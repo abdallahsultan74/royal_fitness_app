@@ -6,8 +6,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/di/injection_container.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth/data/auth_repository.dart';
 import 'features/auth/presentation/pages/login_page.dart';
+import 'features/auth/presentation/pages/reset_password_page.dart';
 import 'features/onboarding/presentation/pages/onboarding_page.dart';
 import 'features/shell/presentation/main_shell.dart';
 import 'features/workout/presentation/bloc/workout_bloc.dart';
@@ -80,18 +80,27 @@ class _InitialGateState extends State<_InitialGate> {
     if (!_supabaseReady) {
       return const LoginPage();
     }
-    final authRepository = AuthRepository();
-    return StreamBuilder(
-      stream: authRepository.authStateChanges(),
+    return StreamBuilder<AuthState>(
+      stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return const Scaffold(
             body: Center(
               child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
             ),
           );
         }
-        return snapshot.data == null ? const LoginPage() : const MainShell();
+        final state = snapshot.data;
+        final session = state?.session;
+        final event = state?.event;
+        if (session != null && event == AuthChangeEvent.passwordRecovery) {
+          return const ResetPasswordPage();
+        }
+        if (session == null) {
+          return const LoginPage();
+        }
+        return const MainShell();
       },
     );
   }

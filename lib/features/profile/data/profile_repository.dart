@@ -51,6 +51,7 @@ class ProfileRepository {
     double? heightCm,
     double? currentWeightKg,
     double? targetWeightKg,
+    double? bmi,
     String? bmiStatus,
     bool includeCreatedAt = false,
   }) async {
@@ -65,6 +66,7 @@ class ProfileRepository {
       if (heightCm != null) 'height_cm': heightCm,
       if (currentWeightKg != null) 'current_weight_kg': currentWeightKg,
       if (targetWeightKg != null) 'target_weight_kg': targetWeightKg,
+      if (bmi != null) 'bmi': bmi,
       if (bmiStatus != null) 'bmi_status': bmiStatus,
       if (includeCreatedAt) 'created_at': DateTime.now().toUtc().toIso8601String(),
       'updated_at': DateTime.now().toUtc().toIso8601String(),

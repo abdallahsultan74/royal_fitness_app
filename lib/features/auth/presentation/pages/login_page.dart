@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/backend/supabase_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/auth_repository.dart';
 import '../../../shell/presentation/main_shell.dart';
@@ -82,6 +83,70 @@ class _LoginPageState extends State<LoginPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+
+  void _showInfo(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _showForgotPasswordDialog() async {
+    final ctrl = TextEditingController(text: _email.text.trim());
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: AppColors.emeraldDark,
+          title: Text(
+            'forgot_password_title'.tr(),
+            style: const TextStyle(color: AppColors.textCream),
+          ),
+          content: TextField(
+            controller: ctrl,
+            keyboardType: TextInputType.emailAddress,
+            style: const TextStyle(color: AppColors.textCream),
+            decoration: InputDecoration(
+              hintText: 'login_email_placeholder'.tr(),
+              hintStyle: const TextStyle(color: AppColors.creamDim),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(
+                'common_cancel'.tr(),
+                style: const TextStyle(color: AppColors.creamDim),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(
+                'forgot_password_send'.tr(),
+                style: const TextStyle(color: AppColors.accentGold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _loading = true);
+    try {
+      await _authRepository.resetPasswordForEmail(
+        ctrl.text,
+        redirectTo: SupabaseConfig.passwordResetRedirectUrl,
+      );
+      if (!mounted) return;
+      _showInfo('forgot_password_sent'.tr());
+    } on AuthException catch (e) {
+      _showError(_mapAuthError(e));
+    } catch (e) {
+      _showError(e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   String _mapAuthError(AuthException e) {
@@ -202,7 +267,9 @@ class _LoginPageState extends State<LoginPage> {
                                 Align(
                                   alignment: AlignmentDirectional.centerEnd,
                                   child: TextButton(
-                                    onPressed: () {},
+                                    onPressed: _loading
+                                        ? null
+                                        : _showForgotPasswordDialog,
                                     style: TextButton.styleFrom(
                                       padding: EdgeInsets.zero,
                                       minimumSize: Size.zero,

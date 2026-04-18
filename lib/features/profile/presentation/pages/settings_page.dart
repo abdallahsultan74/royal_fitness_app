@@ -10,6 +10,7 @@ import '../../../auth/presentation/pages/login_page.dart';
 import '../../../auth/presentation/widgets/royal_gold_shimmer.dart';
 import '../../data/profile_repository.dart';
 import '../../domain/user_profile.dart';
+import 'profile_page.dart';
 
 /// Settings tab (Figma `SettingsScreen`).
 class SettingsPage extends StatefulWidget {
@@ -53,18 +54,29 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: RoyalGlassPanel(
-              variant: RoyalGlassVariant.gold,
-              padding: const EdgeInsets.all(20),
-              child: Stack(
-                children: [
-                  const Positioned.fill(
-                    child: RoyalGoldShimmer(
-                      borderRadius: BorderRadius.all(Radius.circular(24)),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () {
+                  Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ProfilePage(),
                     ),
-                  ),
-                  Row(
+                  );
+                },
+                child: RoyalGlassPanel(
+                  variant: RoyalGlassVariant.gold,
+                  padding: const EdgeInsets.all(20),
+                  child: Stack(
                     children: [
+                      const Positioned.fill(
+                        child: RoyalGoldShimmer(
+                          borderRadius: BorderRadius.all(Radius.circular(24)),
+                        ),
+                      ),
+                      Row(
+                        children: [
                       Container(
                         width: 64,
                         height: 64,
@@ -164,7 +176,9 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ],
                   ),
-                ],
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -199,6 +213,17 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 20),
           _sectionTitle('settings_section_account'.tr()),
+          _menuTile(
+            icon: Icons.person_outline,
+            titleKey: 'profile_title',
+            onTap: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => const ProfilePage(),
+                ),
+              );
+            },
+          ),
           _menuTile(
             icon: Icons.notifications_none,
             titleKey: 'settings_notifications',

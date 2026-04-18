@@ -42,7 +42,7 @@ class _ProgressPageState extends State<ProgressPage> {
       builder: (context, profileSnapshot) {
         final profile = profileSnapshot.data;
         return StreamBuilder<List<WeightLog>>(
-          stream: _progressRepository.watchWeightLogs(limit: 8),
+          stream: _progressRepository.watchWeightLogs(limit: 90),
           builder: (context, weightSnapshot) {
             final weightLogs = weightSnapshot.data ?? const <WeightLog>[];
             return StreamBuilder<List<DailyStat>>(
@@ -87,11 +87,15 @@ class _ProgressPageState extends State<ProgressPage> {
     final currentWeight = profile?.currentWeightKg ?? (weightLogs.isNotEmpty ? weightLogs.last.weightKg : null);
     final streak = _calculateStreak(stats);
     final bmiValue = profile?.bmi;
+    final chartWeightLogs = weightLogs.length > 30
+        ? weightLogs.sublist(weightLogs.length - 30)
+        : weightLogs;
+    final showWeeklyReminder = _needsWeeklyWeightReminder(profile, weightLogs);
     final chartSpots = _chartTab == 'weight'
-        ? _spotsFromWeightLogs(weightLogs)
+        ? _spotsFromWeightLogs(chartWeightLogs)
         : _spotsFromStats(stats.length <= 7 ? stats : stats.sublist(stats.length - 7), (s) => s.totalCalories);
     final chartLabels = _chartTab == 'weight'
-        ? _weightLabels(weightLogs)
+        ? _weightLabels(chartWeightLogs)
         : _dayLabels(stats.length <= 7 ? stats : stats.sublist(stats.length - 7));
     final chartMaxY = _maxY(chartSpots);
     final monthDays = _buildCalendarDays(stats);
@@ -122,6 +126,37 @@ class _ProgressPageState extends State<ProgressPage> {
                     fontSize: 12,
                   ),
                 ),
+                if (showWeeklyReminder) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color.fromRGBO(212, 175, 55, 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.accentGold.withValues(alpha: 0.45)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.event_repeat, color: AppColors.accentGold, size: 22),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'progress_weekly_weight_reminder'.tr(),
+                            style: const TextStyle(color: AppColors.textCream, fontSize: 13),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => _showLogWeightDialog(context, currentWeight),
+                          child: Text(
+                            'progress_log_weight'.tr(),
+                            style: const TextStyle(color: AppColors.accentGold, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -327,6 +362,46 @@ class _ProgressPageState extends State<ProgressPage> {
                             ),
                           ],
                         ),
+                        if (weightLogs.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'progress_weight_log_list'.tr(),
+                              style: const TextStyle(
+                                color: AppColors.accentGold,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          ...weightLogs.reversed.take(20).map(
+                            (log) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    DateFormat.yMMMd().format(log.loggedAt),
+                                    style: const TextStyle(
+                                      color: AppColors.creamDim,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${log.weightKg.toStringAsFixed(1)} kg',
+                                    style: const TextStyle(
+                                      color: AppColors.textCream,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ],
                   ),
@@ -570,6 +645,21 @@ class _ProgressPageState extends State<ProgressPage> {
         );
       },
     );
+  }
+
+  bool _needsWeeklyWeightReminder(UserProfile? profile, List<WeightLog> logs) {
+    DateTime? newest;
+    if (logs.isNotEmpty) {
+      newest = logs.last.loggedAt;
+    }
+    final profileAt = profile?.lastWeightLogAt;
+    if (profileAt != null) {
+      if (newest == null || profileAt.isAfter(newest)) {
+        newest = profileAt;
+      }
+    }
+    if (newest == null) return true;
+    return DateTime.now().difference(newest).inDays >= 7;
   }
 
   int _calculateStreak(List<DailyStat> stats) {
