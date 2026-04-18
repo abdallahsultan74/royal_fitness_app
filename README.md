@@ -173,7 +173,7 @@ royal_fitness_app/
 
 ## Backend & Integrations
 
-## 1) Supabase (Primary Backend)
+### 1) Supabase (Primary Backend)
 
 Configured in:
 - `lib/core/backend/supabase_config.dart`
