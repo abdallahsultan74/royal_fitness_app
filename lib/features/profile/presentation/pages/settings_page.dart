@@ -293,6 +293,12 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: _requestPlanActivation,
           ),
           _menuTile(
+            icon: Icons.autorenew,
+            titleKey: 'Request renewal',
+            valueText: 'Pro',
+            onTap: _requestRenewal,
+          ),
+          _menuTile(
             icon: Icons.help_outline,
             titleKey: 'settings_help',
           ),
@@ -546,9 +552,28 @@ class _SettingsPageState extends State<SettingsPage> {
     if (user == null) return;
     setState(() => _requestingPlan = true);
     try {
+      final pending = await Supabase.instance.client
+          .from('subscription_requests')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('request_kind', 'activate')
+          .eq('status', 'pending')
+          .limit(1);
+      if ((pending as List).isNotEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You already have a pending subscription request.'),
+          ),
+        );
+        return;
+      }
+
       await Supabase.instance.client.from('subscription_requests').insert(<String, dynamic>{
         'user_id': user.id,
         'requested_plan': 'pro',
+        'request_kind': 'activate',
+        'duration_days': 30,
         'note': 'Requested from mobile settings',
         'status': 'pending',
       });
@@ -556,6 +581,57 @@ class _SettingsPageState extends State<SettingsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Plan activation request sent to admin.'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to send request: ${e.toString()}'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _requestingPlan = false);
+      }
+    }
+  }
+
+  Future<void> _requestRenewal() async {
+    if (_requestingPlan) return;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    setState(() => _requestingPlan = true);
+    try {
+      final pending = await Supabase.instance.client
+          .from('subscription_requests')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('request_kind', 'renew')
+          .eq('status', 'pending')
+          .limit(1);
+      if ((pending as List).isNotEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You already have a pending renewal request.'),
+          ),
+        );
+        return;
+      }
+
+      await Supabase.instance.client.from('subscription_requests').insert(<String, dynamic>{
+        'user_id': user.id,
+        'requested_plan': 'pro',
+        'request_kind': 'renew',
+        'duration_days': 30,
+        'note': 'Renewal requested from mobile settings',
+        'status': 'pending',
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Renewal request sent to staff.'),
         ),
       );
     } catch (e) {

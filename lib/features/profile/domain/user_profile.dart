@@ -6,6 +6,7 @@ class UserProfile {
     required this.language,
     required this.goal,
     required this.plan,
+    this.planExpiresAt,
     this.photoUrl,
     this.whatsappPhone,
     this.heightCm,
@@ -22,6 +23,7 @@ class UserProfile {
   final String language;
   final String goal;
   final String plan;
+  final DateTime? planExpiresAt;
   final String? photoUrl;
   final String? whatsappPhone;
   final double? heightCm;
@@ -36,6 +38,7 @@ class UserProfile {
     String? language,
     String? goal,
     String? plan,
+    DateTime? planExpiresAt,
     String? photoUrl,
     String? whatsappPhone,
     double? heightCm,
@@ -52,6 +55,7 @@ class UserProfile {
       language: language ?? this.language,
       goal: goal ?? this.goal,
       plan: plan ?? this.plan,
+      planExpiresAt: planExpiresAt ?? this.planExpiresAt,
       photoUrl: photoUrl ?? this.photoUrl,
       whatsappPhone: whatsappPhone ?? this.whatsappPhone,
       heightCm: heightCm ?? this.heightCm,

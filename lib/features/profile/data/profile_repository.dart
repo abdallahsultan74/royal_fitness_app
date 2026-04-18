@@ -51,6 +51,8 @@ class ProfileRepository {
         language: data['language']?.toString() ?? 'en',
         goal: data['goal']?.toString() ?? 'general_fitness',
         plan: data['plan']?.toString() ?? 'basic',
+        planExpiresAt:
+            DateTime.tryParse(data['plan_expires_at']?.toString() ?? ''),
         photoUrl: data['photo_url']?.toString(),
         whatsappPhone: data['whatsapp_phone']?.toString(),
         heightCm: _toDouble(data['height_cm']),

@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../data/notifications_repository.dart';
@@ -15,136 +16,217 @@ class _UserNotificationsPageState extends State<UserNotificationsPage> {
   final _repo = NotificationsRepository();
   String _tab = 'inbox';
 
+  /// One stream per tab — avoid creating new Realtime subscriptions on every build.
+  late final Stream<List<UserNotificationItem>> _inboxStream = _repo.watchInbox();
+  late final Stream<List<UserNotificationItem>> _sentStream = _repo.watchSent();
+
+  // Reuse controllers across sheet openings; dispose with the page to avoid
+  // "used after being disposed" during route teardown.
+  final TextEditingController _titleCtrl = TextEditingController();
+  final TextEditingController _bodyCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _bodyCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _compose() async {
     final recipients = await _repo.listStaffRecipients();
     if (!mounted) return;
 
     String? selectedId;
     String roleFilter = 'admin';
-    final titleCtrl = TextEditingController();
-    final bodyCtrl = TextEditingController();
+    _titleCtrl.clear();
+    _bodyCtrl.clear();
 
-    await showDialog<void>(
+    await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        final viewInsets = MediaQuery.of(ctx).viewInsets;
-        return AnimatedPadding(
-          padding: EdgeInsets.only(bottom: viewInsets.bottom),
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOut,
-          child: AlertDialog(
-            backgroundColor: AppColors.emeraldDark,
-            insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            scrollable: true,
-            title: Text('notifications_compose'.tr(), style: const TextStyle(color: AppColors.textCream)),
-            content: StatefulBuilder(
-              builder: (ctx2, setLocal) {
-                final normalizedRole = roleFilter.trim().toLowerCase();
-                final filtered = recipients.where((r) {
-                  final rr = (r['role']?.toString() ?? '').trim().toLowerCase();
-                  return rr == normalizedRole;
-                }).toList();
-                if (selectedId != null && !filtered.any((r) => r['id']?.toString() == selectedId)) {
-                  selectedId = null;
-                }
-                return ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SegmentedButton<String>(
-                        segments: [
-                          ButtonSegment(value: 'admin', label: Text('notifications_role_admin'.tr())),
-                          ButtonSegment(value: 'coach', label: Text('notifications_role_coach'.tr())),
-                        ],
-                        selected: {roleFilter},
-                        onSelectionChanged: (s) => setLocal(() => roleFilter = s.first),
-                      ),
-                      const SizedBox(height: 12),
-                      DropdownButtonFormField<String>(
-                        initialValue: selectedId,
-                        dropdownColor: AppColors.emeraldDark,
-                        decoration: InputDecoration(
-                          labelText: 'notifications_to'.tr(),
-                          labelStyle: const TextStyle(color: AppColors.creamDim),
-                        ),
-                        items: filtered.map((r) {
-                          final role = (r['role']?.toString() ?? 'staff');
-                          final name = (r['name']?.toString() ?? r['email']?.toString() ?? 'Staff');
-                          return DropdownMenuItem(
-                            value: r['id']?.toString(),
-                            child: Text('$name · $role', style: const TextStyle(color: AppColors.textCream)),
-                          );
-                        }).toList(),
-                        onChanged: (v) => setLocal(() => selectedId = v),
-                      ),
-                      if (filtered.isEmpty) ...[
-                        const SizedBox(height: 10),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'notifications_no_recipients'.tr(),
-                            style: const TextStyle(color: AppColors.creamDim, fontSize: 12),
+        return StatefulBuilder(
+          builder: (ctx2, setLocal) {
+            final viewInsets = MediaQuery.viewInsetsOf(ctx2);
+            final normalizedRole = roleFilter.trim().toLowerCase();
+            final filtered = recipients.where((r) {
+              final rr = (r['role']?.toString() ?? '').trim().toLowerCase();
+              return rr == normalizedRole;
+            }).toList();
+            if (selectedId != null && !filtered.any((r) => r['id']?.toString() == selectedId)) {
+              selectedId = null;
+            }
+            return Padding(
+              padding: EdgeInsets.only(bottom: viewInsets.bottom),
+              child: Align(
+                alignment: Alignment.bottomCenter,
+                child: Material(
+                  color: AppColors.emeraldDark,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  clipBehavior: Clip.antiAlias,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.sizeOf(ctx2).height * 0.92,
+                    ),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Center(
+                            child: Container(
+                              width: 40,
+                              height: 4,
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: AppColors.creamDim.withValues(alpha: 0.4),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: titleCtrl,
-                        style: const TextStyle(color: AppColors.textCream),
-                        decoration: InputDecoration(
-                          labelText: 'notifications_title_optional'.tr(),
-                          labelStyle: const TextStyle(color: AppColors.creamDim),
-                        ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'notifications_compose'.tr(),
+                                  style: const TextStyle(
+                                    color: AppColors.textCream,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () => Navigator.of(ctx2).pop(),
+                                icon: const Icon(Icons.close, color: AppColors.creamDim),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          SegmentedButton<String>(
+                            segments: [
+                              ButtonSegment(value: 'admin', label: Text('notifications_role_admin'.tr())),
+                              ButtonSegment(value: 'coach', label: Text('notifications_role_coach'.tr())),
+                            ],
+                            selected: {roleFilter},
+                            onSelectionChanged: (s) => setLocal(() => roleFilter = s.first),
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            key: ValueKey<String>(roleFilter),
+                            initialValue: selectedId,
+                            dropdownColor: AppColors.emeraldDark,
+                            decoration: InputDecoration(
+                              labelText: 'notifications_to'.tr(),
+                              labelStyle: const TextStyle(color: AppColors.creamDim),
+                            ),
+                            items: filtered.map((r) {
+                              final role = (r['role']?.toString() ?? 'staff');
+                              final name = (r['name']?.toString() ?? r['email']?.toString() ?? 'Staff');
+                              return DropdownMenuItem(
+                                value: r['id']?.toString(),
+                                child: Text('$name · $role', style: const TextStyle(color: AppColors.textCream)),
+                              );
+                            }).toList(),
+                            onChanged: (v) => setLocal(() => selectedId = v),
+                          ),
+                          if (filtered.isEmpty) ...[
+                            const SizedBox(height: 10),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'notifications_no_recipients'.tr(),
+                                style: const TextStyle(color: AppColors.creamDim, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _titleCtrl,
+                            style: const TextStyle(color: AppColors.textCream),
+                            textInputAction: TextInputAction.next,
+                            decoration: InputDecoration(
+                              labelText: 'notifications_title_optional'.tr(),
+                              labelStyle: const TextStyle(color: AppColors.creamDim),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: _bodyCtrl,
+                            style: const TextStyle(color: AppColors.textCream),
+                            minLines: 3,
+                            maxLines: 8,
+                            textInputAction: TextInputAction.newline,
+                            keyboardType: TextInputType.multiline,
+                            decoration: InputDecoration(
+                              labelText: 'notifications_message'.tr(),
+                              labelStyle: const TextStyle(color: AppColors.creamDim),
+                              alignLabelWithHint: true,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.of(ctx2).pop(),
+                                  child: Text('common_cancel'.tr(), style: const TextStyle(color: AppColors.creamDim)),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: FilledButton(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: AppColors.accentGold,
+                                    foregroundColor: AppColors.emeraldDark,
+                                  ),
+                                  onPressed: () async {
+                                    if (selectedId == null) return;
+                                    final body = _bodyCtrl.text.trim();
+                                    if (body.isEmpty) return;
+                                    try {
+                                      await _repo.sendMessageToStaff(
+                                        staffUserId: selectedId!,
+                                        body: body,
+                                        title: _titleCtrl.text,
+                                      );
+                                      if (!ctx2.mounted) return;
+                                      Navigator.of(ctx2).pop();
+                                      // SnackBar after sheet route is gone — avoids framework assertions during route teardown.
+                                      SchedulerBinding.instance.addPostFrameCallback((_) {
+                                        if (!mounted) return;
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('notifications_sent'.tr())),
+                                        );
+                                      });
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      SchedulerBinding.instance.addPostFrameCallback((_) {
+                                        if (!mounted) return;
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text(e.toString())),
+                                        );
+                                      });
+                                    }
+                                  },
+                                  child: Text('notifications_send'.tr()),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8 + MediaQuery.paddingOf(ctx2).bottom),
+                        ],
                       ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: bodyCtrl,
-                        style: const TextStyle(color: AppColors.textCream),
-                        minLines: 3,
-                        maxLines: 6,
-                        decoration: InputDecoration(
-                          labelText: 'notifications_message'.tr(),
-                          labelStyle: const TextStyle(color: AppColors.creamDim),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                );
-              },
-            ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('common_cancel'.tr(), style: const TextStyle(color: AppColors.creamDim)),
-            ),
-            TextButton(
-              onPressed: () async {
-                if (selectedId == null) return;
-                final body = bodyCtrl.text.trim();
-                if (body.isEmpty) return;
-                try {
-                  await _repo.sendMessageToStaff(
-                    staffUserId: selectedId!,
-                    body: body,
-                    title: titleCtrl.text,
-                  );
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('notifications_sent'.tr())),
-                  );
-                } catch (e) {
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(e.toString())),
-                  );
-                }
-              },
-              child: Text('notifications_send'.tr(), style: const TextStyle(color: AppColors.accentGold)),
-            ),
-          ],
-          ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -241,7 +323,7 @@ class _UserNotificationsPageState extends State<UserNotificationsPage> {
             ),
           ),
           Expanded(
-            child: isInbox ? _list(_repo.watchInbox()) : _list(_repo.watchSent()),
+            child: isInbox ? _list(_inboxStream) : _list(_sentStream),
           ),
         ],
       ),
