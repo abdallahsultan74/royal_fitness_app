@@ -412,15 +412,34 @@ class _ChallengesPageState extends State<ChallengesPage> {
 
   Future<void> _startChallenge(ChallengeTemplate template) async {
     await RoyalFeedback.tap(context);
-    await _progressRepository.startChallenge(template.slug);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(template.displayTitle(context.locale.languageCode))),
-    );
+    try {
+      await _progressRepository.startChallenge(template.slug);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('challenge_started'.tr())),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+      return;
+    }
   }
 
   Future<void> _completeCurrentDay(ChallengeProgress challenge) async {
     await RoyalFeedback.tap(context);
-    await _progressRepository.completeChallengeDay(challenge.currentDay);
+    try {
+      await _progressRepository.completeChallengeDay(challenge.currentDay);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('challenge_day_completed'.tr())),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
   }
 }

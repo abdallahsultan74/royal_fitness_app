@@ -92,15 +92,27 @@ class ProgressRepository {
   }
 
   Future<void> startChallenge(String slug) async {
-    await _client.rpc('start_user_challenge', params: <String, dynamic>{
-      'challenge_slug': slug,
-    });
+    try {
+      await _client.rpc('start_user_challenge', params: <String, dynamic>{
+        'challenge_slug': slug,
+      });
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception(e.toString());
+    }
   }
 
   Future<void> completeChallengeDay(int targetDay) async {
-    await _client.rpc('complete_user_challenge_day', params: <String, dynamic>{
-      'target_day': targetDay,
-    });
+    try {
+      await _client.rpc('complete_user_challenge_day', params: <String, dynamic>{
+        'target_day': targetDay,
+      });
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception(e.toString());
+    }
   }
 
   Stream<ChallengeProgress?> watchActiveChallenge() {
