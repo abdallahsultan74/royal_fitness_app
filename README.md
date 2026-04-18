@@ -203,8 +203,8 @@ If remote exercise loading is unavailable, workout library falls back to local J
 
 ### 3) Firebase Files
 
-Repository includes Firestore rules configuration files.  
-Current Flutter startup flow does not initialize Firebase in `main.dart`.
+Repository includes Firebase/Firestore configuration artifacts (`firebase.json`, `firestore.rules`).  
+The current Flutter runtime entry (`main.dart`) initializes Supabase only and does not initialize Firebase services.
 
 ---
 
