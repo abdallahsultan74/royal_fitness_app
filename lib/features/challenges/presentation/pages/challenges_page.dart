@@ -294,9 +294,11 @@ class _ChallengesPageState extends State<ChallengesPage> {
                             child: InkWell(
                               borderRadius: BorderRadius.circular(24),
                               onTap: () async {
+                                // Capture navigator before any await to satisfy lint and avoid using context across async gap.
+                                final nav = Navigator.of(context);
                                 await RoyalFeedback.tap(context);
                                 if (!mounted) return;
-                                Navigator.of(context).push<void>(
+                                nav.push<void>(
                                   MaterialPageRoute<void>(
                                     builder: (_) => ChallengeDetailsPage(
                                       template: template,
