@@ -34,9 +34,11 @@ class _ChallengesPageState extends State<ChallengesPage> {
           builder: (context, challengeSnapshot) {
             final activeChallenge = challengeSnapshot.data;
             return RoyalTabScaffold(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
                     child: Column(
@@ -221,6 +223,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                       children: templates.map((template) {
                         final isCurrent = activeChallenge?.slug == template.slug;
                         final progress = isCurrent ? activeChallenge!.progressPercent.toInt() : 0;
+                        final progressFactor = (progress / 100).clamp(0.0, 1.0);
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 12),
                           child: RoyalGlassPanel(
@@ -305,7 +308,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                                                         child: Align(
                                                           alignment: Alignment.centerLeft,
                                                           child: FractionallySizedBox(
-                                                            widthFactor: progress / 100,
+                                                            widthFactor: progressFactor,
                                                             child: const ColoredBox(
                                                               color: AppColors.accentGold,
                                                             ),
@@ -350,6 +353,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                     ),
                   ),
                 ],
+                ),
               ),
             );
           },

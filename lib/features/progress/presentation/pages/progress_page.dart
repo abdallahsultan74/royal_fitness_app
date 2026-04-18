@@ -84,7 +84,8 @@ class _ProgressPageState extends State<ProgressPage> {
         );
     final totalCaloriesMonth = stats.fold<int>(0, (sum, s) => sum + s.totalCalories);
     final totalSessionsMonth = stats.fold<int>(0, (sum, s) => sum + s.sessionCount);
-    final currentWeight = profile?.currentWeightKg ?? (weightLogs.isNotEmpty ? weightLogs.last.weightKg : null);
+    // Prefer actual logs (timeline) over cached profile current_weight_kg.
+    final currentWeight = weightLogs.isNotEmpty ? weightLogs.last.weightKg : profile?.currentWeightKg;
     final streak = _calculateStreak(stats);
     final bmiValue = profile?.bmi;
     final chartWeightLogs = weightLogs.length > 30

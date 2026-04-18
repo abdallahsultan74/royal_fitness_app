@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/common_widgets/royal_tab_scaffold.dart';
+import '../../../../core/debug/agent_debug_log.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/bmi_utils.dart';
 import '../../../auth/data/auth_repository.dart';
+import '../../../progress/data/progress_repository.dart';
 import '../../data/profile_repository.dart';
 import '../../domain/user_profile.dart';
 
@@ -20,16 +22,20 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final _profileRepo = ProfileRepository();
   final _authRepo = AuthRepository();
+  final _progressRepo = ProgressRepository();
   final _name = TextEditingController();
+  final _whatsapp = TextEditingController();
   final _height = TextEditingController();
   final _weight = TextEditingController();
   final _target = TextEditingController();
   bool _saving = false;
   String? _filledForUid;
+  int _debugProfileBuild = 0;
 
   @override
   void dispose() {
     _name.dispose();
+    _whatsapp.dispose();
     _height.dispose();
     _weight.dispose();
     _target.dispose();
@@ -38,6 +44,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   void _fillFrom(UserProfile p) {
     _name.text = p.name;
+    _whatsapp.text = p.whatsappPhone ?? '';
     _height.text = p.heightCm?.toStringAsFixed(0) ?? '';
     _weight.text = p.currentWeightKg?.toStringAsFixed(1) ?? '';
     _target.text = p.targetWeightKg?.toStringAsFixed(1) ?? '';
@@ -55,8 +62,13 @@ class _ProfilePageState extends State<ProfilePage> {
     final computed = BmiUtils.compute(heightCm: h, weightKg: w);
     setState(() => _saving = true);
     try {
+      // Keep weight timeline in sync: profile edits should write to weight_logs too.
+      if (w != null && w > 0) {
+        await _progressRepo.logWeight(w);
+      }
       await _profileRepo.upsertProfile(
         name: name,
+        whatsappPhone: _whatsapp.text.trim().isEmpty ? null : _whatsapp.text.trim(),
         heightCm: h,
         currentWeightKg: w,
         targetWeightKg: t,
@@ -146,22 +158,47 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    _debugProfileBuild++;
     return StreamBuilder<UserProfile>(
       stream: _profileRepo.watchProfile(),
       builder: (context, snapshot) {
+        // #region agent log
+        agentDebugLog(
+          hypothesisId: 'H1_H2_H6',
+          location: 'profile_page.dart:StreamBuilder',
+          message: 'profile stream tick',
+          data: <String, dynamic>{
+            'build': _debugProfileBuild,
+            'connectionState': snapshot.connectionState.name,
+            'hasData': snapshot.hasData,
+            'hasError': snapshot.hasError,
+            'error': snapshot.error?.toString(),
+          },
+        );
+        // #endregion
         final profile = snapshot.data;
         final p = profile;
         if (p != null && _filledForUid != p.uid) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (!mounted) return;
+            // #region agent log
+            agentDebugLog(
+              hypothesisId: 'H4',
+              location: 'profile_page.dart:postFrame',
+              message: 'fillFrom scheduled',
+              data: <String, dynamic>{'uid': p.uid, 'priorFilled': _filledForUid},
+            );
+            // #endregion
             _fillFrom(p);
             setState(() => _filledForUid = p.uid);
           });
         }
         return RoyalTabScaffold(
-          child: ListView(
+          child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-            children: [
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
               Row(
                 children: [
                   IconButton(
@@ -204,6 +241,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   p.email,
                   style: const TextStyle(color: AppColors.creamDim, fontSize: 13),
                 ),
+                const SizedBox(height: 16),
+                Text(
+                  'signup_whatsapp_hint'.tr(),
+                  style: const TextStyle(color: AppColors.creamDim, fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+                _field(label: 'signup_whatsapp_placeholder'.tr(), controller: _whatsapp, keyboard: TextInputType.phone),
                 const SizedBox(height: 16),
                 _field(label: 'signup_height_placeholder'.tr(), controller: _height, keyboard: TextInputType.number),
                 const SizedBox(height: 12),
@@ -249,7 +293,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   onTap: _changePasswordDialog,
                 ),
               ],
-            ],
+              ],
+            ),
           ),
         );
       },

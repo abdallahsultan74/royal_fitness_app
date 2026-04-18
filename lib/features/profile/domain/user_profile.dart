@@ -7,6 +7,7 @@ class UserProfile {
     required this.goal,
     required this.plan,
     this.photoUrl,
+    this.whatsappPhone,
     this.heightCm,
     this.currentWeightKg,
     this.targetWeightKg,
@@ -22,6 +23,7 @@ class UserProfile {
   final String goal;
   final String plan;
   final String? photoUrl;
+  final String? whatsappPhone;
   final double? heightCm;
   final double? currentWeightKg;
   final double? targetWeightKg;
@@ -35,6 +37,7 @@ class UserProfile {
     String? goal,
     String? plan,
     String? photoUrl,
+    String? whatsappPhone,
     double? heightCm,
     double? currentWeightKg,
     double? targetWeightKg,
@@ -50,6 +53,7 @@ class UserProfile {
       goal: goal ?? this.goal,
       plan: plan ?? this.plan,
       photoUrl: photoUrl ?? this.photoUrl,
+      whatsappPhone: whatsappPhone ?? this.whatsappPhone,
       heightCm: heightCm ?? this.heightCm,
       currentWeightKg: currentWeightKg ?? this.currentWeightKg,
       targetWeightKg: targetWeightKg ?? this.targetWeightKg,

@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/debug/agent_debug_log.dart';
 import '../domain/user_profile.dart';
 
 class ProfileRepository {
@@ -14,11 +15,33 @@ class ProfileRepository {
   }
 
   Stream<UserProfile> watchProfile() {
+    final session = _client.auth.currentUser;
+    // #region agent log
+    agentDebugLog(
+      hypothesisId: 'H3',
+      location: 'profile_repository.dart:watchProfile',
+      message: 'watchProfile entry',
+      data: <String, dynamic>{
+        'hasSession': session != null,
+        'uidLen': session?.id.length ?? 0,
+      },
+    );
+    // #endregion
     final uid = _user.id;
     final stream = _client
         .from('profiles')
         .stream(primaryKey: <String>['id']).eq('id', uid);
     return stream.map((rows) {
+      // #region agent log
+      agentDebugLog(
+        hypothesisId: 'H2',
+        location: 'profile_repository.dart:watchProfile.map',
+        message: 'profiles stream row',
+        data: <String, dynamic>{
+          'rowCount': rows.length,
+        },
+      );
+      // #endregion
       final data = rows.isNotEmpty ? rows.first : <String, dynamic>{};
       return UserProfile(
         uid: uid,
@@ -29,6 +52,7 @@ class ProfileRepository {
         goal: data['goal']?.toString() ?? 'general_fitness',
         plan: data['plan']?.toString() ?? 'basic',
         photoUrl: data['photo_url']?.toString(),
+        whatsappPhone: data['whatsapp_phone']?.toString(),
         heightCm: _toDouble(data['height_cm']),
         currentWeightKg: _toDouble(data['current_weight_kg']),
         targetWeightKg: _toDouble(data['target_weight_kg']),
@@ -48,6 +72,7 @@ class ProfileRepository {
     String? goal,
     String? plan,
     String? photoUrl,
+    String? whatsappPhone,
     double? heightCm,
     double? currentWeightKg,
     double? targetWeightKg,
@@ -63,6 +88,7 @@ class ProfileRepository {
       if (goal != null) 'goal': goal,
       if (plan != null) 'plan': plan,
       if (photoUrl != null) 'photo_url': photoUrl,
+      if (whatsappPhone != null) 'whatsapp_phone': whatsappPhone,
       if (heightCm != null) 'height_cm': heightCm,
       if (currentWeightKg != null) 'current_weight_kg': currentWeightKg,
       if (targetWeightKg != null) 'target_weight_kg': targetWeightKg,

@@ -38,7 +38,10 @@ class RoyalTabScaffold extends StatelessWidget {
             padding: EdgeInsets.only(
               bottom: RoyalShellMetrics.tabScrollBottomPadding(context),
             ),
-            child: child,
+            child: Material(
+              type: MaterialType.transparency,
+              child: child,
+            ),
           ),
         ),
       ],

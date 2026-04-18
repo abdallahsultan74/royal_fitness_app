@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../../../core/backend/supabase_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/auth_repository.dart';
 import '../../../shell/presentation/main_shell.dart';
 import 'signup_page.dart';
+import 'email_otp_reset_page.dart';
 import '../widgets/gold_gradient_button.dart';
 import '../../../../core/common_widgets/royal_geometric_background.dart';
 import '../widgets/royal_glass_text_field.dart';
@@ -134,12 +134,14 @@ class _LoginPageState extends State<LoginPage> {
     if (ok != true || !mounted) return;
     setState(() => _loading = true);
     try {
-      await _authRepository.resetPasswordForEmail(
-        ctrl.text,
-        redirectTo: SupabaseConfig.passwordResetRedirectUrl,
-      );
+      await _authRepository.sendEmailOtp(ctrl.text);
       if (!mounted) return;
-      _showInfo('forgot_password_sent'.tr());
+      _showInfo('${'otp_reset_sent'.tr()}\n${'otp_reset_check_spam'.tr()}');
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => EmailOtpResetPage(email: ctrl.text),
+        ),
+      );
     } on AuthException catch (e) {
       _showError(_mapAuthError(e));
     } catch (e) {

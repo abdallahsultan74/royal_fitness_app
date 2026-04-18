@@ -22,6 +22,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final AuthRepository _authRepository = AuthRepository();
   final TextEditingController _name = TextEditingController();
   final TextEditingController _email = TextEditingController();
+  final TextEditingController _whatsapp = TextEditingController();
   final TextEditingController _height = TextEditingController();
   final TextEditingController _weight = TextEditingController();
   final TextEditingController _targetWeight = TextEditingController();
@@ -33,6 +34,7 @@ class _SignUpPageState extends State<SignUpPage> {
   void dispose() {
     _name.dispose();
     _email.dispose();
+    _whatsapp.dispose();
     _height.dispose();
     _weight.dispose();
     _targetWeight.dispose();
@@ -45,6 +47,7 @@ class _SignUpPageState extends State<SignUpPage> {
     if (_loading) return;
     final name = _name.text.trim();
     final email = _email.text.trim();
+    final whatsappPhone = _whatsapp.text.trim();
     final heightCm = double.tryParse(_height.text.trim());
     final weightKg = double.tryParse(_weight.text.trim());
     final targetWeightKg = double.tryParse(_targetWeight.text.trim());
@@ -92,6 +95,7 @@ class _SignUpPageState extends State<SignUpPage> {
         heightCm: heightCm,
         currentWeightKg: weightKg,
         targetWeightKg: targetWeightKg,
+        whatsappPhone: whatsappPhone.isEmpty ? null : whatsappPhone,
       );
 
       if (!context.mounted) return;
@@ -243,6 +247,22 @@ class _SignUpPageState extends State<SignUpPage> {
                                   hintText: 'signup_email_placeholder'.tr(),
                                   controller: _email,
                                   keyboardType: TextInputType.emailAddress,
+                                  textInputAction: TextInputAction.next,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'signup_whatsapp_hint'.tr(),
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: AppColors.creamDim,
+                                        fontSize: 12,
+                                      ),
+                                ),
+                                const SizedBox(height: 8),
+                                RoyalGlassTextField(
+                                  icon: Icons.phone_android,
+                                  hintText: 'signup_whatsapp_placeholder'.tr(),
+                                  controller: _whatsapp,
+                                  keyboardType: TextInputType.phone,
                                   textInputAction: TextInputAction.next,
                                 ),
                                 const SizedBox(height: 12),
