@@ -68,7 +68,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(24),
                       child: SizedBox(
-                        height: 200,
+                        height: activeChallenge != null ? 220 : 200,
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
@@ -98,7 +98,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                               ),
                             ),
                             Padding(
-                              padding: const EdgeInsets.all(20),
+                              padding: const EdgeInsets.all(16),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,6 +195,12 @@ class _ChallengesPageState extends State<ChallengesPage> {
                                         onPressed: () => _completeCurrentDay(activeChallenge),
                                         icon: const Icon(Icons.check_circle_outline),
                                         label: Text('challenge_mark_today_done'.tr()),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          minimumSize: const Size(0, 34),
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                          visualDensity: VisualDensity.compact,
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -332,14 +338,27 @@ class _ChallengesPageState extends State<ChallengesPage> {
                                         ],
                                       ),
                                     ),
-                                    TextButton(
-                                      onPressed: isCurrent ? null : () => _startChallenge(template),
-                                      child: Text(
-                                        isCurrent ? 'Active' : 'challenge_start'.tr(),
-                                        style: TextStyle(
-                                          color: isCurrent
-                                              ? AppColors.creamDim
-                                              : AppColors.accentGold,
+                                    ConstrainedBox(
+                                      constraints: const BoxConstraints(maxWidth: 130),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: AlignmentDirectional.centerEnd,
+                                        child: TextButton(
+                                          onPressed: isCurrent ? null : () => _startChallenge(template),
+                                          style: TextButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                            minimumSize: const Size(0, 0),
+                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                            visualDensity: VisualDensity.compact,
+                                          ),
+                                          child: Text(
+                                            isCurrent ? 'Active' : 'challenge_start'.tr(),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: isCurrent ? AppColors.creamDim : AppColors.accentGold,
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),
