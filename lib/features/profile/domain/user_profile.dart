@@ -7,6 +7,12 @@ class UserProfile {
     required this.goal,
     required this.plan,
     this.photoUrl,
+    this.heightCm,
+    this.currentWeightKg,
+    this.targetWeightKg,
+    this.bmi,
+    this.bmiStatus,
+    this.lastWeightLogAt,
   });
 
   final String uid;
@@ -16,6 +22,12 @@ class UserProfile {
   final String goal;
   final String plan;
   final String? photoUrl;
+  final double? heightCm;
+  final double? currentWeightKg;
+  final double? targetWeightKg;
+  final double? bmi;
+  final String? bmiStatus;
+  final DateTime? lastWeightLogAt;
 
   UserProfile copyWith({
     String? name,
@@ -23,6 +35,12 @@ class UserProfile {
     String? goal,
     String? plan,
     String? photoUrl,
+    double? heightCm,
+    double? currentWeightKg,
+    double? targetWeightKg,
+    double? bmi,
+    String? bmiStatus,
+    DateTime? lastWeightLogAt,
   }) {
     return UserProfile(
       uid: uid,
@@ -32,6 +50,12 @@ class UserProfile {
       goal: goal ?? this.goal,
       plan: plan ?? this.plan,
       photoUrl: photoUrl ?? this.photoUrl,
+      heightCm: heightCm ?? this.heightCm,
+      currentWeightKg: currentWeightKg ?? this.currentWeightKg,
+      targetWeightKg: targetWeightKg ?? this.targetWeightKg,
+      bmi: bmi ?? this.bmi,
+      bmiStatus: bmiStatus ?? this.bmiStatus,
+      lastWeightLogAt: lastWeightLogAt ?? this.lastWeightLogAt,
     );
   }
 }

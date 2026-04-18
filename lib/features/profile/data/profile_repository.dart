@@ -8,6 +8,11 @@ class ProfileRepository {
   SupabaseClient get _client => Supabase.instance.client;
   User get _user => _client.auth.currentUser!;
 
+  double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    return (value as num?)?.toDouble() ?? double.tryParse(value.toString());
+  }
+
   Stream<UserProfile> watchProfile() {
     final uid = _user.id;
     final stream = _client
@@ -24,6 +29,13 @@ class ProfileRepository {
         goal: data['goal']?.toString() ?? 'general_fitness',
         plan: data['plan']?.toString() ?? 'basic',
         photoUrl: data['photo_url']?.toString(),
+        heightCm: _toDouble(data['height_cm']),
+        currentWeightKg: _toDouble(data['current_weight_kg']),
+        targetWeightKg: _toDouble(data['target_weight_kg']),
+        bmi: _toDouble(data['bmi']),
+        bmiStatus: data['bmi_status']?.toString(),
+        lastWeightLogAt:
+            DateTime.tryParse(data['last_weight_log_at']?.toString() ?? ''),
       );
     });
   }
@@ -36,6 +48,10 @@ class ProfileRepository {
     String? goal,
     String? plan,
     String? photoUrl,
+    double? heightCm,
+    double? currentWeightKg,
+    double? targetWeightKg,
+    String? bmiStatus,
     bool includeCreatedAt = false,
   }) async {
     final data = <String, dynamic>{
@@ -46,6 +62,10 @@ class ProfileRepository {
       if (goal != null) 'goal': goal,
       if (plan != null) 'plan': plan,
       if (photoUrl != null) 'photo_url': photoUrl,
+      if (heightCm != null) 'height_cm': heightCm,
+      if (currentWeightKg != null) 'current_weight_kg': currentWeightKg,
+      if (targetWeightKg != null) 'target_weight_kg': targetWeightKg,
+      if (bmiStatus != null) 'bmi_status': bmiStatus,
       if (includeCreatedAt) 'created_at': DateTime.now().toUtc().toIso8601String(),
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     };

@@ -5,11 +5,15 @@ import 'package:flutter/material.dart';
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/common_widgets/royal_tab_scaffold.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/presentation/widgets/royal_gold_shimmer.dart';
+import '../../../challenges/domain/challenge_progress.dart';
+import '../../../profile/data/profile_repository.dart';
+import '../../../profile/domain/user_profile.dart';
+import '../../data/progress_repository.dart';
+import '../../domain/weight_log.dart';
 import '../../../workout/data/workout_repository.dart';
 import '../../../workout/domain/daily_stat.dart';
-import '../../../auth/presentation/widgets/royal_gold_shimmer.dart';
 
-/// Progress tab (Figma `ProgressTracker`).
 class ProgressPage extends StatefulWidget {
   const ProgressPage({super.key});
 
@@ -19,59 +23,84 @@ class ProgressPage extends StatefulWidget {
 
 class _ProgressPageState extends State<ProgressPage> {
   final WorkoutRepository _workoutRepository = WorkoutRepository();
+  final ProgressRepository _progressRepository = ProgressRepository();
+  final ProfileRepository _profileRepository = ProfileRepository();
+  final TextEditingController _weightController = TextEditingController();
   String _chartTab = 'weight';
+  DateTime _calendarMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
-  static const Set<int> _streakDays = {1, 2, 3, 5, 6, 7, 8, 9, 10, 12};
-  static const int _today = 12;
-  static const int _daysInMonth = 30;
-  static const int _startDay = 3;
-
-  List<List<int?>> _weeks() {
-    final weeks = <List<int?>>[];
-    var week = <int?>[...List<int?>.filled(_startDay, null)];
-    for (var d = 1; d <= _daysInMonth; d++) {
-      week.add(d);
-      if (week.length == 7) {
-        weeks.add(week);
-        week = <int?>[];
-      }
-    }
-    if (week.isNotEmpty) {
-      while (week.length < 7) {
-        week.add(null);
-      }
-      weeks.add(week);
-    }
-    return weeks;
+  @override
+  void dispose() {
+    _weightController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final weeks = _weeks();
-    final dayLabels = 'progress_weekday_letters'.tr().split(',');
-    final todayKey = _workoutRepository.dateKey();
+    return StreamBuilder<UserProfile>(
+      stream: _profileRepository.watchProfile(),
+      builder: (context, profileSnapshot) {
+        final profile = profileSnapshot.data;
+        return StreamBuilder<List<WeightLog>>(
+          stream: _progressRepository.watchWeightLogs(limit: 8),
+          builder: (context, weightSnapshot) {
+            final weightLogs = weightSnapshot.data ?? const <WeightLog>[];
+            return StreamBuilder<List<DailyStat>>(
+              stream: _workoutRepository.watchRecentStats(days: 30),
+              builder: (context, statSnapshot) {
+                final stats = statSnapshot.data ?? const <DailyStat>[];
+                return StreamBuilder<ChallengeProgress?>(
+                  stream: _progressRepository.watchActiveChallenge(),
+                  builder: (context, challengeSnapshot) {
+                    final activeChallenge = challengeSnapshot.data;
+                    return _buildBody(
+                      context,
+                      profile: profile,
+                      weightLogs: weightLogs,
+                      stats: stats,
+                      activeChallenge: activeChallenge,
+                    );
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
 
-    return StreamBuilder<List<DailyStat>>(
-      stream: _workoutRepository.watchRecentStats(days: 30),
-      builder: (context, snapshot) {
-        final stats = snapshot.data ?? const <DailyStat>[];
-        final today = stats.where((e) => e.dateKey == todayKey).fold<DailyStat?>(
+  Widget _buildBody(
+    BuildContext context, {
+    required UserProfile? profile,
+    required List<WeightLog> weightLogs,
+    required List<DailyStat> stats,
+    required ChallengeProgress? activeChallenge,
+  }) {
+    final todayKey = _workoutRepository.dateKey();
+    final today = stats.where((e) => e.dateKey == todayKey).fold<DailyStat?>(
           null,
           (prev, e) => e,
         );
-        final recent8 = (stats.length <= 8 ? stats : stats.sublist(stats.length - 8));
-        final recent7 = (stats.length <= 7 ? stats : stats.sublist(stats.length - 7));
-        final exerciseSpots = _spotsFromStats(recent8, (s) => s.completedExercises);
-        final calorieSpots = _spotsFromStats(recent7, (s) => s.totalCalories);
-        final chartMaxY = _maxY(exerciseSpots);
-        final calMaxY = _maxY(calorieSpots);
-        final totalCaloriesMonth = stats.fold<int>(0, (sum, s) => sum + s.totalCalories);
-        final totalSessionsMonth = stats.fold<int>(0, (sum, s) => sum + s.sessionCount);
+    final totalCaloriesMonth = stats.fold<int>(0, (sum, s) => sum + s.totalCalories);
+    final totalSessionsMonth = stats.fold<int>(0, (sum, s) => sum + s.sessionCount);
+    final currentWeight = profile?.currentWeightKg ?? (weightLogs.isNotEmpty ? weightLogs.last.weightKg : null);
+    final streak = _calculateStreak(stats);
+    final bmiValue = profile?.bmi;
+    final chartSpots = _chartTab == 'weight'
+        ? _spotsFromWeightLogs(weightLogs)
+        : _spotsFromStats(stats.length <= 7 ? stats : stats.sublist(stats.length - 7), (s) => s.totalCalories);
+    final chartLabels = _chartTab == 'weight'
+        ? _weightLabels(weightLogs)
+        : _dayLabels(stats.length <= 7 ? stats : stats.sublist(stats.length - 7));
+    final chartMaxY = _maxY(chartSpots);
+    final monthDays = _buildCalendarDays(stats);
+    final dayLabels = 'progress_weekday_letters'.tr().split(',');
 
-        return RoyalTabScaffold(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+    return RoyalTabScaffold(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
             child: Column(
@@ -103,6 +132,13 @@ class _ProgressPageState extends State<ProgressPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               children: [
                 _statChip(
+                  icon: Icons.monitor_weight_outlined,
+                  color: const Color(0xFF4FC3F7),
+                  value: currentWeight != null ? '${currentWeight.toStringAsFixed(1)}kg' : '--',
+                  labelKey: 'progress_stat_weight',
+                ),
+                const SizedBox(width: 10),
+                _statChip(
                   icon: Icons.local_fire_department,
                   color: const Color(0xFFFF6B6B),
                   value: '${today?.totalCalories ?? 0}',
@@ -117,17 +153,17 @@ class _ProgressPageState extends State<ProgressPage> {
                 ),
                 const SizedBox(width: 10),
                 _statChip(
-                  icon: Icons.calendar_today_outlined,
+                  icon: Icons.favorite_outline,
                   color: const Color(0xFF66BB6A),
-                  value: '${today?.sessionCount ?? 0}',
-                  labelKey: 'progress_stat_streak',
+                  value: bmiValue?.toStringAsFixed(1) ?? '--',
+                  labelKey: 'progress_stat_bmi',
                 ),
                 const SizedBox(width: 10),
                 _statChip(
-                  icon: Icons.trending_down,
-                  color: const Color(0xFF4FC3F7),
-                  value: '${today?.totalMinutes ?? 0}m',
-                  labelKey: 'progress_stat_lost',
+                  icon: Icons.calendar_today_outlined,
+                  color: const Color(0xFF81C784),
+                  value: '$streak',
+                  labelKey: 'progress_stat_streak',
                 ),
               ],
             ),
@@ -157,190 +193,139 @@ class _ProgressPageState extends State<ProgressPage> {
                       const SizedBox(height: 12),
                       if (_chartTab == 'weight') ...[
                         Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
                           children: [
-                            Text(
-                              '$totalSessionsMonth ${'progress_stat_workouts'.tr()}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
-                                  ?.copyWith(
-                                    color: AppColors.textCream,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                            Expanded(
+                              child: Text(
+                                '${'progress_latest_weight'.tr()}: ${currentWeight?.toStringAsFixed(1) ?? '--'}',
+                                style: const TextStyle(
+                                  color: AppColors.textCream,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                             ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '${today?.completedExercises ?? 0} ${'progress_this_week'.tr()}',
-                              style: TextStyle(
-                                color: const Color(0xFF66BB6A),
-                                fontSize: 12,
+                            TextButton(
+                              onPressed: () => _showLogWeightDialog(context, currentWeight),
+                              child: Text(
+                                'progress_log_weight'.tr(),
+                                style: const TextStyle(color: AppColors.accentGold),
                               ),
                             ),
                           ],
                         ),
                         Text(
-                          'progress_last_8_weeks'.tr(),
+                          'progress_weight_history'.tr(),
                           style: const TextStyle(
                             color: AppColors.creamDim,
                             fontSize: 11,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          height: 140,
-                          child: LineChart(
-                            LineChartData(
-                              minX: 0,
-                              maxX: (exerciseSpots.length - 1).toDouble(),
-                              minY: 0,
-                              maxY: chartMaxY,
-                              gridData: const FlGridData(show: false),
-                              borderData: FlBorderData(show: false),
-                              titlesData: FlTitlesData(
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 22,
-                                    getTitlesWidget: (v, _) {
-                                      final labels = _dayLabels(recent8, context);
-                                      final i = v.toInt().clamp(0, labels.length - 1);
-                                      return Padding(
-                                        padding: const EdgeInsets.only(top: 6),
-                                        child: Text(
-                                          labels[i],
-                                          style: const TextStyle(
-                                            color: AppColors.creamDim,
-                                            fontSize: 10,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    interval: 1,
-                                  ),
-                                ),
-                                leftTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                topTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                rightTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                              ),
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: exerciseSpots,
-                                  isCurved: true,
-                                  color: AppColors.accentGold,
-                                  barWidth: 2.5,
-                                  dotData: const FlDotData(show: true),
-                                  belowBarData: BarAreaData(
-                                    show: true,
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        AppColors.accentGold
-                                            .withValues(alpha: 0.25),
-                                        AppColors.accentGold
-                                            .withValues(alpha: 0),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
                           ),
                         ),
                       ] else ...[
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              '$totalCaloriesMonth',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
-                                  ?.copyWith(
-                                    color: AppColors.textCream,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'kcal ${'progress_this_week'.tr()}',
-                              style: const TextStyle(
-                                color: AppColors.creamDim,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          '$totalCaloriesMonth ${'progress_month_total'.tr()}',
+                          style: const TextStyle(
+                            color: AppColors.textCream,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         Text(
-                          'progress_daily_breakdown'.tr(),
+                          '$totalSessionsMonth ${'progress_stat_workouts'.tr()}',
                           style: const TextStyle(
                             color: AppColors.creamDim,
                             fontSize: 11,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          height: 140,
-                          child: LineChart(
-                            LineChartData(
-                              minX: 0,
-                              maxX: (calorieSpots.length - 1).toDouble(),
-                              minY: 0,
-                              maxY: calMaxY,
-                              gridData: const FlGridData(show: false),
-                              borderData: FlBorderData(show: false),
-                              titlesData: FlTitlesData(
-                                bottomTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 22,
-                                    getTitlesWidget: (v, _) {
-                                      final labels = _dayLabels(recent7, context);
-                                      final i = v.toInt().clamp(0, labels.length - 1);
-                                      return Padding(
-                                        padding: const EdgeInsets.only(top: 6),
-                                        child: Text(
-                                          labels[i],
-                                          style: const TextStyle(
-                                            color: AppColors.creamDim,
-                                            fontSize: 10,
-                                          ),
+                      ],
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 140,
+                        child: LineChart(
+                          LineChartData(
+                            minX: 0,
+                            maxX: (chartSpots.length - 1).toDouble(),
+                            minY: 0,
+                            maxY: chartMaxY,
+                            gridData: const FlGridData(show: false),
+                            borderData: FlBorderData(show: false),
+                            titlesData: FlTitlesData(
+                              bottomTitles: AxisTitles(
+                                sideTitles: SideTitles(
+                                  showTitles: true,
+                                  reservedSize: 22,
+                                  getTitlesWidget: (value, _) {
+                                    final index = value.toInt().clamp(0, chartLabels.length - 1);
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 6),
+                                      child: Text(
+                                        chartLabels[index],
+                                        style: const TextStyle(
+                                          color: AppColors.creamDim,
+                                          fontSize: 10,
                                         ),
-                                      );
-                                    },
-                                    interval: 1,
-                                  ),
-                                ),
-                                leftTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                topTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
-                                ),
-                                rightTitles: const AxisTitles(
-                                  sideTitles: SideTitles(showTitles: false),
+                                      ),
+                                    );
+                                  },
+                                  interval: 1,
                                 ),
                               ),
-                              lineBarsData: [
-                                LineChartBarData(
-                                  spots: calorieSpots,
-                                  isCurved: true,
-                                  color: const Color(0xFFFF6B6B),
-                                  barWidth: 2.5,
-                                  dotData: const FlDotData(show: true),
-                                ),
-                              ],
+                              leftTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              topTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
+                              rightTitles: const AxisTitles(
+                                sideTitles: SideTitles(showTitles: false),
+                              ),
                             ),
+                            lineBarsData: [
+                              LineChartBarData(
+                                spots: chartSpots,
+                                isCurved: true,
+                                color: _chartTab == 'weight'
+                                    ? AppColors.accentGold
+                                    : const Color(0xFFFF6B6B),
+                                barWidth: 2.5,
+                                dotData: const FlDotData(show: true),
+                                belowBarData: BarAreaData(
+                                  show: true,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      (_chartTab == 'weight'
+                                              ? AppColors.accentGold
+                                              : const Color(0xFFFF6B6B))
+                                          .withValues(alpha: 0.18),
+                                      (_chartTab == 'weight'
+                                              ? AppColors.accentGold
+                                              : const Color(0xFFFF6B6B))
+                                          .withValues(alpha: 0),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
+                        ),
+                      ),
+                      if (_chartTab == 'weight') ...[
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 8,
+                          children: [
+                            _inlineInfo(
+                              '${'progress_height'.tr()}: ${profile?.heightCm?.toStringAsFixed(0) ?? '--'} cm',
+                            ),
+                            _inlineInfo(
+                              '${'progress_target_weight'.tr()}: ${profile?.targetWeightKg?.toStringAsFixed(1) ?? '--'} kg',
+                            ),
+                            _inlineInfo(
+                              'BMI: ${profile?.bmi?.toStringAsFixed(1) ?? '--'} ${_bmiStatusLabel(profile?.bmiStatus)}',
+                            ),
+                          ],
                         ),
                       ],
                     ],
@@ -349,6 +334,72 @@ class _ProgressPageState extends State<ProgressPage> {
               ),
             ),
           ),
+          if (activeChallenge != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              child: RoyalGlassPanel(
+                variant: RoyalGlassVariant.gold,
+                padding: const EdgeInsets.all(16),
+                child: Stack(
+                  children: [
+                    const Positioned.fill(
+                      child: RoyalGoldShimmer(
+                        borderRadius: BorderRadius.all(Radius.circular(24)),
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'progress_active_challenge'.tr(),
+                          style: const TextStyle(
+                            color: AppColors.accentGold,
+                            fontSize: 11,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          activeChallenge.displayTitle(context.locale.languageCode),
+                          style: const TextStyle(
+                            color: AppColors.textCream,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'challenge_progress_day'.tr(args: [
+                            '${activeChallenge.currentDay}',
+                            '${activeChallenge.daysCount}',
+                          ]),
+                          style: const TextStyle(
+                            color: AppColors.creamDim,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(999),
+                          child: SizedBox(
+                            height: 6,
+                            child: ColoredBox(
+                              color: const Color.fromRGBO(212, 175, 55, 0.15),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: FractionallySizedBox(
+                                  widthFactor: (activeChallenge.progressPercent / 100).clamp(0, 1),
+                                  child: const ColoredBox(color: AppColors.accentGold),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
             child: RoyalGlassPanel(
@@ -366,16 +417,24 @@ class _ProgressPageState extends State<ProgressPage> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _calNavBtn(Icons.chevron_left),
+                          _calNavBtn(Icons.chevron_left, () {
+                            setState(() {
+                              _calendarMonth = DateTime(_calendarMonth.year, _calendarMonth.month - 1);
+                            });
+                          }),
                           Text(
-                            'progress_calendar_month'.tr(),
+                            DateFormat('MMMM yyyy', context.locale.languageCode).format(_calendarMonth),
                             style: const TextStyle(
                               color: AppColors.textCream,
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          _calNavBtn(Icons.chevron_right),
+                          _calNavBtn(Icons.chevron_right, () {
+                            setState(() {
+                              _calendarMonth = DateTime(_calendarMonth.year, _calendarMonth.month + 1);
+                            });
+                          }),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -396,20 +455,21 @@ class _ProgressPageState extends State<ProgressPage> {
                             .toList(),
                       ),
                       const SizedBox(height: 8),
-                      ...weeks.map(
-                        (wk) => Padding(
+                      ...monthDays.map(
+                        (week) => Padding(
                           padding: const EdgeInsets.only(bottom: 4),
                           child: Row(
-                            children: wk.map((day) {
+                            children: week.map((day) {
                               if (day == null) {
                                 return const Expanded(child: SizedBox(height: 38));
                               }
-                              final isStreak = _streakDays.contains(day);
-                              final isToday = day == _today;
+                              final date = DateTime(_calendarMonth.year, _calendarMonth.month, day);
+                              final key = _workoutRepository.dateKey(date);
+                              final isWorkoutDay = stats.any((s) => s.dateKey == key && (s.sessionCount > 0 || s.completedExercises > 0));
+                              final isToday = key == todayKey;
                               return Expanded(
                                 child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(horizontal: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 2),
                                   child: Container(
                                     height: 38,
                                     alignment: Alignment.center,
@@ -423,30 +483,11 @@ class _ProgressPageState extends State<ProgressPage> {
                                               ],
                                             )
                                           : null,
-                                      color: !isToday && isStreak
+                                      color: !isToday && isWorkoutDay
                                           ? AppColors.goldDim
-                                          : (!isToday && !isStreak
-                                              ? Colors.transparent
-                                              : null),
-                                      border: isStreak && !isToday
-                                          ? Border.all(
-                                              color: AppColors.goldBorder,
-                                            )
-                                          : isToday
-                                              ? null
-                                              : null,
-                                      boxShadow: isToday
-                                          ? const [
-                                              BoxShadow(
-                                                color: Color.fromRGBO(
-                                                  212,
-                                                  175,
-                                                  55,
-                                                  0.4,
-                                                ),
-                                                blurRadius: 16,
-                                              ),
-                                            ]
+                                          : Colors.transparent,
+                                      border: isWorkoutDay && !isToday
+                                          ? Border.all(color: AppColors.goldBorder)
                                           : null,
                                     ),
                                     child: Text(
@@ -455,12 +496,10 @@ class _ProgressPageState extends State<ProgressPage> {
                                         fontSize: 12,
                                         color: isToday
                                             ? AppColors.emeraldDark
-                                            : isStreak
+                                            : isWorkoutDay
                                                 ? AppColors.accentGold
                                                 : AppColors.creamDim,
-                                        fontWeight: isToday
-                                            ? FontWeight.w700
-                                            : FontWeight.w500,
+                                        fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                                       ),
                                     ),
                                   ),
@@ -470,62 +509,6 @@ class _ProgressPageState extends State<ProgressPage> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 10,
-                                height: 10,
-                                decoration: const BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppColors.accentGold,
-                                      AppColors.goldLight,
-                                    ],
-                                  ),
-                                  borderRadius:
-                                      BorderRadius.all(Radius.circular(4)),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'progress_legend_today'.tr(),
-                                style: const TextStyle(
-                                  color: AppColors.creamDim,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 20),
-                          Row(
-                            children: [
-                              Container(
-                                width: 10,
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  color: AppColors.goldDim,
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(
-                                    color: AppColors.goldBorder,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'progress_legend_workout'.tr(),
-                                style: const TextStyle(
-                                  color: AppColors.creamDim,
-                                  fontSize: 10,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ],
@@ -533,9 +516,112 @@ class _ProgressPageState extends State<ProgressPage> {
             ),
           ),
         ],
-        ),
-      );
+      ),
+    );
+  }
+
+  Future<void> _showLogWeightDialog(BuildContext context, double? initialWeight) async {
+    _weightController.text = initialWeight?.toStringAsFixed(1) ?? '';
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.primaryEmerald,
+          title: Text(
+            'progress_log_weight'.tr(),
+            style: const TextStyle(color: AppColors.textCream),
+          ),
+          content: TextField(
+            controller: _weightController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            style: const TextStyle(color: AppColors.textCream),
+            decoration: InputDecoration(
+              hintText: '70.5',
+              hintStyle: const TextStyle(color: AppColors.creamDim),
+              enabledBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: AppColors.glassBorder),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: const BorderSide(color: AppColors.accentGold),
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                final weight = double.tryParse(_weightController.text.trim());
+                if (weight == null || weight <= 0) return;
+                await _progressRepository.logWeight(weight);
+                if (!context.mounted) return;
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'progress_log_weight'.tr(),
+                style: const TextStyle(color: AppColors.accentGold),
+              ),
+            ),
+          ],
+        );
       },
+    );
+  }
+
+  int _calculateStreak(List<DailyStat> stats) {
+    if (stats.isEmpty) return 0;
+    final sorted = [...stats]..sort((a, b) => b.dateKey.compareTo(a.dateKey));
+    var streak = 0;
+    var expected = DateTime.now();
+    for (final stat in sorted) {
+      final date = DateTime.tryParse(stat.dateKey);
+      if (date == null) continue;
+      final normalized = DateTime(date.year, date.month, date.day);
+      final expectedNormalized =
+          DateTime(expected.year, expected.month, expected.day);
+      if (normalized == expectedNormalized &&
+          (stat.sessionCount > 0 || stat.completedExercises > 0 || stat.totalMinutes > 0)) {
+        streak += 1;
+        expected = expected.subtract(const Duration(days: 1));
+      }
+    }
+    return streak;
+  }
+
+  List<List<int?>> _buildCalendarDays(List<DailyStat> stats) {
+    final firstDay = DateTime(_calendarMonth.year, _calendarMonth.month, 1);
+    final daysInMonth = DateTime(_calendarMonth.year, _calendarMonth.month + 1, 0).day;
+    final leading = firstDay.weekday % 7;
+    final weeks = <List<int?>>[];
+    var week = <int?>[...List<int?>.filled(leading, null)];
+    for (var day = 1; day <= daysInMonth; day++) {
+      week.add(day);
+      if (week.length == 7) {
+        weeks.add(week);
+        week = <int?>[];
+      }
+    }
+    if (week.isNotEmpty) {
+      while (week.length < 7) {
+        week.add(null);
+      }
+      weeks.add(week);
+    }
+    return weeks;
+  }
+
+  List<FlSpot> _spotsFromWeightLogs(List<WeightLog> logs) {
+    if (logs.isEmpty) {
+      return const <FlSpot>[FlSpot(0, 0), FlSpot(1, 0)];
+    }
+    return List<FlSpot>.generate(
+      logs.length,
+      (i) => FlSpot(i.toDouble(), logs[i].weightKg),
+      growable: false,
     );
   }
 
@@ -553,7 +639,14 @@ class _ProgressPageState extends State<ProgressPage> {
     );
   }
 
-  List<String> _dayLabels(List<DailyStat> stats, BuildContext context) {
+  List<String> _weightLabels(List<WeightLog> logs) {
+    if (logs.isEmpty) return const <String>['-', '-'];
+    return logs
+        .map((log) => DateFormat('M/d').format(log.loggedAt))
+        .toList(growable: false);
+  }
+
+  List<String> _dayLabels(List<DailyStat> stats) {
     if (stats.isEmpty) return const <String>['-', '-'];
     return stats
         .map((s) => s.dateKey.split('-').skip(1).join('/'))
@@ -562,7 +655,22 @@ class _ProgressPageState extends State<ProgressPage> {
 
   double _maxY(List<FlSpot> spots) {
     final max = spots.fold<double>(0, (prev, s) => s.y > prev ? s.y : prev);
-    return max <= 0 ? 10 : max + (max * 0.2);
+    return max <= 0 ? 10 : max + (max * 0.15);
+  }
+
+  String _bmiStatusLabel(String? status) {
+    switch (status) {
+      case 'underweight':
+        return 'progress_bmi_status_underweight'.tr();
+      case 'normal':
+        return 'progress_bmi_status_normal'.tr();
+      case 'overweight':
+        return 'progress_bmi_status_overweight'.tr();
+      case 'obese':
+        return 'progress_bmi_status_obese'.tr();
+      default:
+        return '';
+    }
   }
 
   Widget _chartTabButton(String key, String labelKey) {
@@ -593,6 +701,16 @@ class _ProgressPageState extends State<ProgressPage> {
     );
   }
 
+  Widget _inlineInfo(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: AppColors.creamDim,
+        fontSize: 11,
+      ),
+    );
+  }
+
   static Widget _statChip({
     required IconData icon,
     required Color color,
@@ -600,7 +718,7 @@ class _ProgressPageState extends State<ProgressPage> {
     required String labelKey,
   }) {
     return SizedBox(
-      width: 92,
+      width: 98,
       child: RoyalGlassPanel(
         variant: RoyalGlassVariant.gold,
         borderRadius: 20,
@@ -640,12 +758,12 @@ class _ProgressPageState extends State<ProgressPage> {
     );
   }
 
-  Widget _calNavBtn(IconData icon) {
+  Widget _calNavBtn(IconData icon, VoidCallback onTap) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: () {},
+        onTap: onTap,
         child: Container(
           width: 32,
           height: 32,

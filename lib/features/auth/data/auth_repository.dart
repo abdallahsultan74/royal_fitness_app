@@ -27,6 +27,9 @@ class AuthRepository {
     required String email,
     required String password,
     required String language,
+    required double heightCm,
+    required double currentWeightKg,
+    double? targetWeightKg,
   }) async {
     final response = await _auth.signUp(
       email: email,
@@ -45,6 +48,9 @@ class AuthRepository {
       language: language,
       goal: 'general_fitness',
       plan: 'trial',
+      heightCm: heightCm,
+      currentWeightKg: currentWeightKg,
+      targetWeightKg: targetWeightKg,
       includeCreatedAt: true,
     );
     return response.session != null || _auth.currentSession != null;

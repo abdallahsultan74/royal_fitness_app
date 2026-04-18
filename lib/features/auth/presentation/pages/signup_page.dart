@@ -22,6 +22,9 @@ class _SignUpPageState extends State<SignUpPage> {
   final AuthRepository _authRepository = AuthRepository();
   final TextEditingController _name = TextEditingController();
   final TextEditingController _email = TextEditingController();
+  final TextEditingController _height = TextEditingController();
+  final TextEditingController _weight = TextEditingController();
+  final TextEditingController _targetWeight = TextEditingController();
   final TextEditingController _password = TextEditingController();
   final TextEditingController _confirmPassword = TextEditingController();
   bool _loading = false;
@@ -30,6 +33,9 @@ class _SignUpPageState extends State<SignUpPage> {
   void dispose() {
     _name.dispose();
     _email.dispose();
+    _height.dispose();
+    _weight.dispose();
+    _targetWeight.dispose();
     _password.dispose();
     _confirmPassword.dispose();
     super.dispose();
@@ -39,11 +45,32 @@ class _SignUpPageState extends State<SignUpPage> {
     if (_loading) return;
     final name = _name.text.trim();
     final email = _email.text.trim();
+    final heightCm = double.tryParse(_height.text.trim());
+    final weightKg = double.tryParse(_weight.text.trim());
+    final targetWeightKg = double.tryParse(_targetWeight.text.trim());
     final password = _password.text;
     final confirmPassword = _confirmPassword.text;
 
-    if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    if (name.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty ||
+        _height.text.trim().isEmpty ||
+        _weight.text.trim().isEmpty) {
       _showError('من فضلك أدخل كل البيانات');
+      return;
+    }
+    if (heightCm == null || heightCm <= 0 || heightCm > 260) {
+      _showError('أدخل طولاً صحيحاً بالسنتيمتر');
+      return;
+    }
+    if (weightKg == null || weightKg <= 0 || weightKg > 400) {
+      _showError('أدخل وزناً صحيحاً بالكيلو');
+      return;
+    }
+    if (_targetWeight.text.trim().isNotEmpty &&
+        (targetWeightKg == null || targetWeightKg <= 0 || targetWeightKg > 400)) {
+      _showError('أدخل وزن الهدف بشكل صحيح أو اتركه فارغاً');
       return;
     }
     if (password.length < 6) {
@@ -62,6 +89,9 @@ class _SignUpPageState extends State<SignUpPage> {
         email: email,
         password: password,
         language: context.locale.languageCode,
+        heightCm: heightCm,
+        currentWeightKg: weightKg,
+        targetWeightKg: targetWeightKg,
       );
 
       if (!context.mounted) return;
@@ -213,6 +243,30 @@ class _SignUpPageState extends State<SignUpPage> {
                                   hintText: 'signup_email_placeholder'.tr(),
                                   controller: _email,
                                   keyboardType: TextInputType.emailAddress,
+                                  textInputAction: TextInputAction.next,
+                                ),
+                                const SizedBox(height: 12),
+                                RoyalGlassTextField(
+                                  icon: Icons.height,
+                                  hintText: 'signup_height_placeholder'.tr(),
+                                  controller: _height,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  textInputAction: TextInputAction.next,
+                                ),
+                                const SizedBox(height: 12),
+                                RoyalGlassTextField(
+                                  icon: Icons.monitor_weight_outlined,
+                                  hintText: 'signup_weight_placeholder'.tr(),
+                                  controller: _weight,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  textInputAction: TextInputAction.next,
+                                ),
+                                const SizedBox(height: 12),
+                                RoyalGlassTextField(
+                                  icon: Icons.flag_outlined,
+                                  hintText: 'signup_target_weight_placeholder'.tr(),
+                                  controller: _targetWeight,
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                   textInputAction: TextInputAction.next,
                                 ),
                                 const SizedBox(height: 12),
