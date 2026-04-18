@@ -88,7 +88,8 @@ class ProfileRepository {
       if (goal != null) 'goal': goal,
       if (plan != null) 'plan': plan,
       if (photoUrl != null) 'photo_url': photoUrl,
-      if (whatsappPhone != null) 'whatsapp_phone': whatsappPhone,
+      // Allow clearing the number by sending empty string -> null
+      if (whatsappPhone != null) 'whatsapp_phone': whatsappPhone.trim().isEmpty ? null : whatsappPhone.trim(),
       if (heightCm != null) 'height_cm': heightCm,
       if (currentWeightKg != null) 'current_weight_kg': currentWeightKg,
       if (targetWeightKg != null) 'target_weight_kg': targetWeightKg,
