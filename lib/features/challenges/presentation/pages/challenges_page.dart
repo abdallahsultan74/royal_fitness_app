@@ -7,8 +7,10 @@ import '../../../../core/common_widgets/royal_tab_scaffold.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/ui/royal_feedback.dart';
 import '../../../progress/data/progress_repository.dart';
+import '../../../plans/data/my_plan_repository.dart';
 import '../../domain/challenge_progress.dart';
 import '../../../auth/presentation/widgets/royal_gold_shimmer.dart';
+import 'challenge_details_page.dart';
 
 const String _kChallengeBannerImg =
     'https://images.unsplash.com/photo-1561532325-7d5231a2dede?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080';
@@ -23,6 +25,7 @@ class ChallengesPage extends StatefulWidget {
 
 class _ChallengesPageState extends State<ChallengesPage> {
   final ProgressRepository _progressRepository = ProgressRepository();
+  final MyPlanRepository _planRepository = MyPlanRepository();
 
   @override
   Widget build(BuildContext context) {
@@ -30,11 +33,15 @@ class _ChallengesPageState extends State<ChallengesPage> {
       future: _progressRepository.fetchChallengeTemplates(),
       builder: (context, templatesSnapshot) {
         final templates = templatesSnapshot.data ?? const <ChallengeTemplate>[];
-        return StreamBuilder<ChallengeProgress?>(
-          stream: _progressRepository.watchActiveChallenge(),
-          builder: (context, challengeSnapshot) {
-            final activeChallenge = challengeSnapshot.data;
-            return RoyalTabScaffold(
+        return FutureBuilder<MyActivePlan?>(
+          future: _planRepository.fetchMyActivePlan(),
+          builder: (context, planSnapshot) {
+            final myPlan = planSnapshot.data;
+            return StreamBuilder<ChallengeProgress?>(
+              stream: _progressRepository.watchActiveChallenge(),
+              builder: (context, challengeSnapshot) {
+                final activeChallenge = challengeSnapshot.data;
+                return RoyalTabScaffold(
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Column(
@@ -64,6 +71,52 @@ class _ChallengesPageState extends State<ChallengesPage> {
                       ],
                     ),
                   ),
+                  if (myPlan != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                      child: RoyalGlassPanel(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'my_plan_title'.tr(),
+                              style: const TextStyle(
+                                color: AppColors.textCream,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              myPlan.title,
+                              style: const TextStyle(
+                                color: AppColors.accentGold,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            if ((myPlan.description ?? '').trim().isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                myPlan.description ?? '',
+                                style: const TextStyle(color: AppColors.creamDim, fontSize: 12),
+                              ),
+                            ],
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 10,
+                              runSpacing: 4,
+                              children: [
+                                _meta(Icons.calendar_month, '${myPlan.durationWeeks} ${'weeks'.tr()}'),
+                                _meta(Icons.fitness_center, myPlan.level),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: ClipRRect(
@@ -238,8 +291,22 @@ class _ChallengesPageState extends State<ChallengesPage> {
                                 ? RoyalGlassVariant.gold
                                 : RoyalGlassVariant.standard,
                             padding: const EdgeInsets.all(16),
-                            child: Stack(
-                              children: [
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(24),
+                              onTap: () async {
+                                await RoyalFeedback.tap(context);
+                                if (!mounted) return;
+                                Navigator.of(context).push<void>(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => ChallengeDetailsPage(
+                                      template: template,
+                                      active: activeChallenge,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Stack(
+                                children: [
                                 if (isCurrent)
                                   const Positioned.fill(
                                     child: RoyalGoldShimmer(
@@ -366,6 +433,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                                   ],
                                 ),
                               ],
+                              ),
                             ),
                           ),
                         );
@@ -375,6 +443,8 @@ class _ChallengesPageState extends State<ChallengesPage> {
                 ],
                 ),
               ),
+                );
+              },
             );
           },
         );
