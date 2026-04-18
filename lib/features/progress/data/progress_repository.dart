@@ -56,13 +56,18 @@ class ProgressRepository {
     final day = (loggedAt ?? DateTime.now()).toUtc();
     final dateKey =
         '${day.year.toString().padLeft(4, '0')}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
-    await _client.from('weight_logs').upsert(<String, dynamic>{
-      'user_id': _uid,
-      'logged_at': dateKey,
-      'weight_kg': weightKg,
-      'source': 'app',
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    });
+    // `weight_logs` has a unique constraint on (user_id, logged_at).
+    // Make sure we upsert on that key to avoid duplicate-key errors.
+    await _client.from('weight_logs').upsert(
+      <String, dynamic>{
+        'user_id': _uid,
+        'logged_at': dateKey,
+        'weight_kg': weightKg,
+        'source': 'app',
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      },
+      onConflict: 'user_id,logged_at',
+    );
   }
 
   Future<List<ChallengeTemplate>> fetchChallengeTemplates() async {
