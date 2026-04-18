@@ -90,8 +90,8 @@ class _WorkoutLibraryPageState extends State<WorkoutLibraryPage> {
           'search_query': '',
         },
       );
-      if (rows.isEmpty) return false;
-
+      // Treat empty result as a valid remote state (new installs / RLS / empty DB).
+      // This avoids permanently falling back to local data and makes realtime updates work.
       debugPrint('WorkoutLibraryPage API rows: ${rows.length}');
 
       final mapped = rows

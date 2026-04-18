@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/common_widgets/royal_tab_scaffold.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/ui/royal_feedback.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../../auth/presentation/pages/login_page.dart';
 import '../../../auth/presentation/widgets/royal_gold_shimmer.dart';
@@ -398,7 +399,12 @@ class _SettingsPageState extends State<SettingsPage> {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(20),
-          onTap: onTap ?? (trailing != null && showChevron == false ? null : () {}),
+          onTap: onTap == null
+              ? (trailing != null && showChevron == false ? null : () {})
+              : () async {
+                  await RoyalFeedback.tap(context);
+                  onTap();
+                },
           child: RoyalGlassPanel(
             borderRadius: 20,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

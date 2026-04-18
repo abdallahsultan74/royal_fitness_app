@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/common_widgets/royal_tab_scaffold.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/ui/royal_feedback.dart';
 import '../../../progress/data/progress_repository.dart';
 import '../../domain/challenge_progress.dart';
 import '../../../auth/presentation/widgets/royal_gold_shimmer.dart';
@@ -410,6 +411,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Future<void> _startChallenge(ChallengeTemplate template) async {
+    await RoyalFeedback.tap(context);
     await _progressRepository.startChallenge(template.slug);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -418,6 +420,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
   }
 
   Future<void> _completeCurrentDay(ChallengeProgress challenge) async {
+    await RoyalFeedback.tap(context);
     await _progressRepository.completeChallengeDay(challenge.currentDay);
   }
 }
