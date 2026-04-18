@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../../auth/presentation/pages/login_page.dart';
 import '../../../auth/presentation/widgets/royal_gold_shimmer.dart';
+import '../../../notifications/presentation/pages/user_notifications_page.dart';
 import '../../data/profile_repository.dart';
 import '../../domain/user_profile.dart';
 import 'profile_page.dart';
@@ -232,6 +233,17 @@ class _SettingsPageState extends State<SettingsPage> {
               onChanged: (v) => setState(() => _notifications = v),
             ),
             showChevron: false,
+          ),
+          _menuTile(
+            icon: Icons.inbox_outlined,
+            titleKey: 'notifications_inbox',
+            onTap: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => const UserNotificationsPage(),
+                ),
+              );
+            },
           ),
           _menuTile(
             icon: Icons.language,
