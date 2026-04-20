@@ -1,5 +1,5 @@
 -- Dashboard metrics + subscription pricing (admin/coach-tunable).
--- هدفها: أرقام الداشبورد تبقى مبنية على بيانات حقيقية، وجزء الفلوس/الربح يبقى مبني على سعر الاشتراك اللي يحدده staff.
+-- Goal: Make dashboard metrics reflect real data, and compute revenue based on staff-defined subscription pricing.
 
 -- ========== Subscription pricing ==========
 
@@ -180,8 +180,8 @@ $$;
 grant execute on function public.api_admin_dashboard_metrics(integer) to authenticated;
 
 -- ========== Staff "delete user" (soft delete) ==========
--- ملاحظة: حذف auth.users بالكامل يحتاج service_role/Edge Function.
--- هنا بنعمل soft-delete داخل public schema + نمسح بيانات المستخدم المرتبطة في جداولنا.
+-- Note: Deleting auth.users requires service_role (typically via an Edge Function).
+-- This RPC performs a soft delete in public schema and removes related user-owned rows.
 
 alter table public.profiles
   add column if not exists deleted_at timestamptz;

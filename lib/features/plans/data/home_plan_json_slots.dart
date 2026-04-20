@@ -13,11 +13,11 @@ import 'my_plan_repository.dart';
 ///       "time": "7:00 AM",
 ///       "done": true,
 ///       "description": "Optional notes for the slot.",
-///       "description_ar": "ملاحظات بالعربية"
+///       "description_ar": "Optional notes in Arabic."
 ///     },
 ///     {
 ///       "title": "Custom block",
-///       "title_ar": "كتلة مخصصة",
+///       "title_ar": "Custom block (Arabic).",
 ///       "time": "10:00",
 ///       "done": false
 ///     }

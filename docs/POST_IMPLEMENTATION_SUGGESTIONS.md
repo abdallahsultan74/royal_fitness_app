@@ -1,28 +1,28 @@
-# اقتراحات وتحسينات بعد التنفيذ (Royal Fitness)
+# Post-Implementation Suggestions (Royal Fitness)
 
-هذا المستند ملخص لمراجعتك وليس جزءاً من منطق التطبيق.
+This document is a review checklist and is not part of the runtime application logic.
 
-## منتج وصلاحيات
+## Product & permissions
 
-- **فترة سماح عند انتهاء البرو:** إبقاء الخطة 24–72 ساعة مع شريط تنبيه بدل الإخفاء الفوري.
-- **مصفوفة ميزات (Feature flags) مركزية:** جدول `plan_tier_features` يغذي التطبيق والأدمن بدل تكرار الشروط في كل RPC.
-- **سجل تدقيق:** `admin_audit_log` لمن غيّر `plan` أو `feature_flags` أو إسناد خطة.
+- **Grace period after Pro expiry**: keep access for 24–72 hours with a banner instead of immediate lockout.
+- **Central feature matrix**: consider a `plan_tier_features` table to drive both app + admin behavior instead of duplicating checks across RPCs.
+- **Audit log**: introduce an `admin_audit_log` to track changes to `plan`, `feature_flags`, and plan assignments.
 
-## أداء وموثوقية
+## Performance & reliability
 
-- **Realtime:** دمج اشتراكات `plan_assignments` + `profiles` في قناة واحدة حيث يناسب الحمل.
-- **اختبارات تكامل:** سيناريوهات `api_my_active_plan` / `api_my_active_challenge` بعد تغيير `profiles.plan` و`feature_flags`.
+- **Realtime**: where it makes sense, consider merging `plan_assignments` + `profiles` subscriptions into a single channel to reduce load.
+- **Integration tests**: add end-to-end scenarios for `api_my_active_plan` / `api_my_active_challenge` after changes to `profiles.plan` and `feature_flags`.
 
-## تجربة مستخدم
+## User experience
 
-- **CachedNetworkImage** لصور خطط اليوم القادمة من روابط HTTPS في الصفحة الرئيسية (حالياً تُستخدم بشكل أساسي في شاشة التمرين).
-- **إشعار داخل التطبيق** عند سحب البرو أو إلغاء إسناد خطة (استناداً إلى `user_notifications`).
+- **Cached images on Home**: use `CachedNetworkImage` for plan images loaded from HTTPS URLs.
+- **In-app notice**: notify users when Pro access is revoked or a plan assignment is removed (via `user_notifications`).
 
-## أدمن
+## Admin
 
-- **تصدير/استيراد JSON** للخطة بين بيئات staging وproduction.
-- **معاينة** لخطة اليوم في الأدمن قبل الحفظ (نفس منطق التطبيق).
+- **Plan JSON import/export**: enable moving plan JSON between staging and production.
+- **Preview**: add a “today preview” in the admin before saving (reuse the same parsing logic as the app).
 
-## علامة تجارية
+## Branding
 
-- استبدال أصول `assets/branding/*.png` بتصميم نهائي عالي الدقة عند الجاهزية.
+- Replace `assets/branding/*.png` with final high-resolution assets when ready.

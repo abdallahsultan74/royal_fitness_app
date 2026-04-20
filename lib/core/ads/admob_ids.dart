@@ -2,8 +2,8 @@ import 'dart:io' show Platform;
 
 /// AdMob IDs.
 ///
-/// ملاحظة: دي IDs تجريبية من جوجل (Test IDs) عشان التطوير.
-/// بدّلها بـ IDs الحقيقية قبل الإطلاق.
+/// Note: These are Google test unit IDs for development.
+/// Replace them with your production unit IDs before releasing.
 class AdMobIds {
   static String bannerUnitId() {
     if (Platform.isAndroid) return 'ca-app-pub-3940256099942544/6300978111';
