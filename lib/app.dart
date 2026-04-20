@@ -9,6 +9,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/pages/login_page.dart';
 import 'features/auth/presentation/pages/reset_password_page.dart';
 import 'features/onboarding/presentation/pages/onboarding_page.dart';
+import 'features/profile/data/profile_repository.dart';
 import 'features/shell/presentation/main_shell.dart';
 import 'features/workout/presentation/bloc/workout_bloc.dart';
 
@@ -43,6 +44,7 @@ class _InitialGate extends StatefulWidget {
 class _InitialGateState extends State<_InitialGate> {
   bool? _onboardingDone;
   bool _supabaseReady = false;
+  final ProfileRepository _profileRepository = ProfileRepository();
 
   @override
   void initState() {
@@ -100,9 +102,66 @@ class _InitialGateState extends State<_InitialGate> {
         if (session == null) {
           return const LoginPage();
         }
-        return const MainShell();
+        return FutureBuilder<String?>(
+          future: _profileRepository.fetchProfileRole(uid: session.user.id),
+          builder: (context, roleSnap) {
+            if (roleSnap.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+                ),
+              );
+            }
+            final role = roleSnap.data;
+            if (role == 'admin' || role == 'coach') {
+              return const _StaffBlockedGate();
+            }
+            return const MainShell();
+          },
+        );
       },
     );
+  }
+}
+
+class _StaffBlockedGate extends StatefulWidget {
+  const _StaffBlockedGate();
+
+  @override
+  State<_StaffBlockedGate> createState() => _StaffBlockedGateState();
+}
+
+class _StaffBlockedGateState extends State<_StaffBlockedGate> {
+  bool _done = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _kickOut();
+  }
+
+  Future<void> _kickOut() async {
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() => _done = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final msg = 'auth_staff_not_allowed'.tr();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_done) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFFD4AF37)),
+        ),
+      );
+    }
+    return const LoginPage();
   }
 }
 

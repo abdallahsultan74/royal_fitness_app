@@ -21,6 +21,7 @@ class AuthRepository {
     required String password,
   }) async {
     await _auth.signInWithPassword(email: email, password: password);
+    await _enforceMobileUserOnly();
   }
 
   Future<bool> signUp({
@@ -60,6 +61,16 @@ class AuthRepository {
   }
 
   Future<void> signOut() => _auth.signOut();
+
+  Future<void> _enforceMobileUserOnly() async {
+    final uid = _auth.currentUser?.id;
+    if (uid == null) return;
+    final role = await _profileRepository.fetchProfileRole(uid: uid);
+    if (role == 'admin' || role == 'coach') {
+      await signOut();
+      throw Exception('STAFF_NOT_ALLOWED');
+    }
+  }
 
   /// Normalizes pasted OTP: extracts `token`/`code` from URLs, maps Arabic/Persian
   /// digits to Latin, collapses spaced digit groups (e.g. "123 456").

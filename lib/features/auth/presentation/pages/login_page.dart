@@ -55,7 +55,7 @@ class _LoginPageState extends State<LoginPage> {
     final email = _email.text.trim();
     final password = _password.text;
     if (email.isEmpty || password.isEmpty) {
-      _showError('يرجى إدخال البريد وكلمة المرور');
+      _showError('auth_missing_credentials'.tr());
       return;
     }
 
@@ -69,8 +69,12 @@ class _LoginPageState extends State<LoginPage> {
       _openHome(context);
     } on AuthException catch (e) {
       _showError(_mapAuthError(e));
-    } catch (_) {
-      _showError('حدث خطأ غير متوقع، حاول مرة أخرى');
+    } catch (e) {
+      if (e.toString().contains('STAFF_NOT_ALLOWED')) {
+        _showError('auth_staff_not_allowed'.tr());
+      } else {
+        _showError('auth_unexpected_error'.tr());
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

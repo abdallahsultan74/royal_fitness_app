@@ -9,6 +9,20 @@ class ProfileRepository {
   SupabaseClient get _client => Supabase.instance.client;
   User get _user => _client.auth.currentUser!;
 
+  Future<String?> fetchProfileRole({String? uid}) async {
+    final id = (uid == null || uid.trim().isEmpty) ? _client.auth.currentUser?.id : uid;
+    if (id == null) return null;
+    final row = await _client
+        .from('profiles')
+        .select('role')
+        .eq('id', id)
+        .maybeSingle();
+    final role = row?['role']?.toString();
+    if (role == null) return null;
+    final norm = role.trim().toLowerCase();
+    return norm.isEmpty ? null : norm;
+  }
+
   double? _toDouble(dynamic value) {
     if (value == null) return null;
     return (value as num?)?.toDouble() ?? double.tryParse(value.toString());
