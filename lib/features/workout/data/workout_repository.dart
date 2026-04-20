@@ -244,6 +244,36 @@ class WorkoutRepository {
     }).toList(growable: false);
   }
 
+  Future<Set<int>> fetchMonthSessionDays({
+    required int year,
+    required int month,
+  }) async {
+    final start = DateTime(year, month, 1);
+    final end = DateTime(year, month + 1, 1);
+    final startKey = dateKey(start);
+    final endKey = dateKey(end);
+
+    final rows = await _client
+        .from('workout_sessions')
+        .select('date_key')
+        .eq('user_id', _uid)
+        .gte('date_key', startKey)
+        .lt('date_key', endKey)
+        .order('date_key', ascending: true);
+
+    final days = <int>{};
+    for (final r in rows) {
+      final s = r['date_key']?.toString() ?? '';
+      // PostgREST returns dates like 'YYYY-MM-DD'
+      final parts = s.split('-');
+      if (parts.length >= 3) {
+        final d = int.tryParse(parts[2]);
+        if (d != null && d >= 1 && d <= 31) days.add(d);
+      }
+    }
+    return days;
+  }
+
   Future<List<WorkoutSession>> fetchDaySessions({
     required DateTime day,
   }) async {

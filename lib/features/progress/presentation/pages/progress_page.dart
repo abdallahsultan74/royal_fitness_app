@@ -30,6 +30,7 @@ class _ProgressPageState extends State<ProgressPage> {
   String _chartTab = 'weight';
   DateTime _calendarMonth = DateTime(DateTime.now().year, DateTime.now().month);
   Future<List<DailyStat>>? _monthStatsFuture;
+  Future<Set<int>>? _monthSessionDaysFuture;
 
   @override
   void dispose() {
@@ -45,6 +46,10 @@ class _ProgressPageState extends State<ProgressPage> {
 
   void _reloadMonthStats() {
     _monthStatsFuture = _workoutRepository.fetchMonthStats(
+      year: _calendarMonth.year,
+      month: _calendarMonth.month,
+    );
+    _monthSessionDaysFuture = _workoutRepository.fetchMonthSessionDays(
       year: _calendarMonth.year,
       month: _calendarMonth.month,
     );
@@ -509,161 +514,151 @@ class _ProgressPageState extends State<ProgressPage> {
               }
               final monthStats = monthSnap.data ?? const <DailyStat>[];
               final monthDaysLocal = _buildCalendarDays(monthStats);
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                child: RoyalGlassPanel(
-                  variant: RoyalGlassVariant.gold,
-                  padding: const EdgeInsets.all(16),
-                  child: Stack(
-                    children: [
-                      const Positioned.fill(
-                        child: RoyalGoldShimmer(
-                          borderRadius: BorderRadius.all(Radius.circular(24)),
-                        ),
-                      ),
-                      Column(
+              return FutureBuilder<Set<int>>(
+                future: _monthSessionDaysFuture,
+                builder: (context, sessionDaysSnap) {
+                  final sessionDays = sessionDaysSnap.data ?? const <int>{};
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                    child: RoyalGlassPanel(
+                      variant: RoyalGlassVariant.gold,
+                      padding: const EdgeInsets.all(16),
+                      child: Stack(
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _calNavBtn(Icons.chevron_left, () {
-                                setState(() {
-                                  _calendarMonth = DateTime(
-                                    _calendarMonth.year,
-                                    _calendarMonth.month - 1,
-                                  );
-                                  _reloadMonthStats();
-                                });
-                              }),
-                              Text(
-                                DateFormat('MMMM yyyy',
-                                        context.locale.languageCode)
-                                    .format(_calendarMonth),
-                                style: const TextStyle(
-                                  color: AppColors.textCream,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              _calNavBtn(Icons.chevron_right, () {
-                                setState(() {
-                                  _calendarMonth = DateTime(
-                                    _calendarMonth.year,
-                                    _calendarMonth.month + 1,
-                                  );
-                                  _reloadMonthStats();
-                                });
-                              }),
-                            ],
+                          const Positioned.fill(
+                            child: RoyalGoldShimmer(
+                              borderRadius: BorderRadius.all(Radius.circular(24)),
+                            ),
                           ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: dayLabels
-                                .map(
-                                  (d) => Expanded(
-                                    child: Text(
-                                      d.trim(),
-                                      textAlign: TextAlign.center,
-                                      style: const TextStyle(
-                                        color: AppColors.creamDim,
-                                        fontSize: 10,
-                                      ),
+                          Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _calNavBtn(Icons.chevron_left, () {
+                                    setState(() {
+                                      _calendarMonth = DateTime(
+                                        _calendarMonth.year,
+                                        _calendarMonth.month - 1,
+                                      );
+                                      _reloadMonthStats();
+                                    });
+                                  }),
+                                  Text(
+                                    DateFormat('MMMM yyyy', context.locale.languageCode)
+                                        .format(_calendarMonth),
+                                    style: const TextStyle(
+                                      color: AppColors.textCream,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                )
-                                .toList(),
-                          ),
-                          const SizedBox(height: 8),
-                          ...monthDaysLocal.map(
-                            (week) => Padding(
-                              padding: const EdgeInsets.only(bottom: 4),
-                              child: Row(
-                                children: week.map((day) {
-                                  if (day == null) {
-                                    return const Expanded(
-                                        child: SizedBox(height: 38));
-                                  }
-                                  final date = DateTime(
-                                    _calendarMonth.year,
-                                    _calendarMonth.month,
-                                    day,
-                                  );
-                                  final key = _workoutRepository.dateKey(date);
-                                  final isWorkoutDay = monthStats.any((s) =>
-                                      s.dateKey == key &&
-                                      (s.sessionCount > 0 ||
-                                          s.completedExercises > 0 ||
-                                          s.totalMinutes > 0));
-                                  final isToday = key == todayKey;
-                                  return Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 2),
-                                      child: InkWell(
-                                        borderRadius: BorderRadius.circular(12),
-                                        onTap: isWorkoutDay
-                                            ? () {
-                                                Navigator.of(context)
-                                                    .push<void>(
-                                                  MaterialPageRoute<void>(
-                                                    builder: (_) =>
-                                                        DailyWorkoutLogPage(
-                                                      day: date,
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-                                            : null,
-                                        child: Container(
-                                          height: 38,
-                                          alignment: Alignment.center,
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            gradient: isToday
-                                                ? const LinearGradient(
-                                                    colors: [
-                                                      AppColors.accentGold,
-                                                      AppColors.goldLight,
-                                                    ],
-                                                  )
-                                                : null,
-                                            color: !isToday && isWorkoutDay
-                                                ? AppColors.goldDim
-                                                : Colors.transparent,
-                                            border: isWorkoutDay && !isToday
-                                                ? Border.all(
-                                                    color:
-                                                        AppColors.goldBorder)
-                                                : null,
-                                          ),
-                                          child: Text(
-                                            '$day',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: isToday
-                                                  ? AppColors.emeraldDark
-                                                  : isWorkoutDay
-                                                      ? AppColors.accentGold
-                                                      : AppColors.creamDim,
-                                              fontWeight: isToday
-                                                  ? FontWeight.w700
-                                                  : FontWeight.w500,
-                                            ),
+                                  _calNavBtn(Icons.chevron_right, () {
+                                    setState(() {
+                                      _calendarMonth = DateTime(
+                                        _calendarMonth.year,
+                                        _calendarMonth.month + 1,
+                                      );
+                                      _reloadMonthStats();
+                                    });
+                                  }),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: dayLabels
+                                    .map(
+                                      (d) => Expanded(
+                                        child: Text(
+                                          d.trim(),
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: AppColors.creamDim,
+                                            fontSize: 10,
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  );
-                                }).toList(),
+                                    )
+                                    .toList(),
                               ),
-                            ),
+                              const SizedBox(height: 8),
+                              ...monthDaysLocal.map(
+                                (week) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 4),
+                                  child: Row(
+                                    children: week.map((day) {
+                                      if (day == null) {
+                                        return const Expanded(child: SizedBox(height: 38));
+                                      }
+                                      final date = DateTime(
+                                        _calendarMonth.year,
+                                        _calendarMonth.month,
+                                        day,
+                                      );
+                                      final now = DateTime.now();
+                                      final isToday = now.year == date.year &&
+                                          now.month == date.month &&
+                                          now.day == date.day;
+                                      final isWorkoutDay = sessionDays.contains(day);
+                                      return Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 2),
+                                          child: InkWell(
+                                            borderRadius: BorderRadius.circular(12),
+                                            onTap: () {
+                                              Navigator.of(context).push<void>(
+                                                MaterialPageRoute<void>(
+                                                  builder: (_) => DailyWorkoutLogPage(day: date),
+                                                ),
+                                              );
+                                            },
+                                            child: Container(
+                                              height: 38,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(12),
+                                                gradient: isToday
+                                                    ? const LinearGradient(
+                                                        colors: [
+                                                          AppColors.accentGold,
+                                                          AppColors.goldLight,
+                                                        ],
+                                                      )
+                                                    : null,
+                                                color: !isToday && isWorkoutDay
+                                                    ? AppColors.goldDim
+                                                    : Colors.transparent,
+                                                border: isWorkoutDay && !isToday
+                                                    ? Border.all(color: AppColors.goldBorder)
+                                                    : null,
+                                              ),
+                                              child: Text(
+                                                '$day',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: isToday
+                                                      ? AppColors.emeraldDark
+                                                      : isWorkoutDay
+                                                          ? AppColors.accentGold
+                                                          : AppColors.creamDim,
+                                                  fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                  );
+                },
               );
             },
           ),
