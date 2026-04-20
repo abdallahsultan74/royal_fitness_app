@@ -10,6 +10,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/ui/royal_feedback.dart';
 import '../../../progress/data/progress_repository.dart';
 import '../../../plans/data/my_plan_repository.dart';
+import '../../../plans/presentation/pages/my_plan_details_page.dart';
 import '../../domain/challenge_progress.dart';
 import '../../../auth/presentation/widgets/royal_gold_shimmer.dart';
 import 'challenge_details_page.dart';
@@ -78,43 +79,66 @@ class _ChallengesPageState extends State<ChallengesPage> {
                       padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                       child: RoyalGlassPanel(
                         padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              'my_plan_title'.tr(),
-                              style: const TextStyle(
-                                color: AppColors.textCream,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(24),
+                          onTap: () async {
+                            await RoyalFeedback.tap(context);
+                            if (!context.mounted) return;
+                            Navigator.of(context).push<void>(
+                              MaterialPageRoute<void>(
+                                builder: (_) => MyPlanDetailsPage(plan: myPlan),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              myPlan.title,
-                              style: const TextStyle(
-                                color: AppColors.accentGold,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
+                            );
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      'my_plan_title'.tr(),
+                                      style: const TextStyle(
+                                        color: AppColors.textCream,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(
+                                    Icons.chevron_right,
+                                    size: 18,
+                                    color: AppColors.creamDim,
+                                  ),
+                                ],
                               ),
-                            ),
-                            if ((myPlan.description ?? '').trim().isNotEmpty) ...[
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 8),
                               Text(
-                                myPlan.description ?? '',
-                                style: const TextStyle(color: AppColors.creamDim, fontSize: 12),
+                                myPlan.title,
+                                style: const TextStyle(
+                                  color: AppColors.accentGold,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              if ((myPlan.description ?? '').trim().isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Text(
+                                  myPlan.description ?? '',
+                                  style: const TextStyle(color: AppColors.creamDim, fontSize: 12),
+                                ),
+                              ],
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 10,
+                                runSpacing: 4,
+                                children: [
+                                  _meta(Icons.calendar_month, '${myPlan.durationWeeks} ${'weeks'.tr()}'),
+                                  _meta(Icons.fitness_center, myPlan.level),
+                                ],
                               ),
                             ],
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 10,
-                              runSpacing: 4,
-                              children: [
-                                _meta(Icons.calendar_month, '${myPlan.durationWeeks} ${'weeks'.tr()}'),
-                                _meta(Icons.fitness_center, myPlan.level),
-                              ],
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
