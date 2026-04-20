@@ -24,7 +24,9 @@ class MyPlanDetailsPage extends StatelessWidget {
         title: Text('my_plan_title'.tr()),
       ),
       body: RoyalTabScaffold(
-        child: Column(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             RoyalGlassPanel(
@@ -74,89 +76,96 @@ class MyPlanDetailsPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            Expanded(
-              child: ListView.separated(
-                itemCount: slots.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  final slot = slots[index];
-                  final title = slot.displayTitle(lang);
-                  final subtitle = slot.displayDescription(lang);
-                  return RoyalGlassPanel(
-                    padding: const EdgeInsets.all(14),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(24),
-                      onTap: () async {
-                        await RoyalFeedback.tap(context);
-                        if (!context.mounted) return;
-                        Navigator.of(context).push<void>(
-                          MaterialPageRoute<void>(
-                            builder: (_) => PlanSlotDetailPage(
-                              slot: slot,
-                              planTitle: plan.title,
-                            ),
+            ListView.separated(
+              itemCount: slots.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemBuilder: (context, index) {
+                final slot = slots[index];
+                final title = slot.displayTitle(lang);
+                final subtitle = slot.displayDescription(lang);
+                return RoyalGlassPanel(
+                  padding: const EdgeInsets.all(14),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(24),
+                    onTap: () async {
+                      await RoyalFeedback.tap(context);
+                      if (!context.mounted) return;
+                      Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (_) => PlanSlotDetailPage(
+                            slot: slot,
+                            planTitle: plan.title,
                           ),
-                        );
-                      },
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 42,
-                            height: 42,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: AppColors.goldDim,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: AppColors.glassBorder),
-                            ),
-                            child: Icon(
-                              slot.done ? Icons.check_circle : Icons.schedule,
-                              color: slot.done ? const Color(0xFF66BB6A) : AppColors.accentGold,
-                              size: 18,
-                            ),
+                        ),
+                      );
+                    },
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.goldDim,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: AppColors.glassBorder),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
+                          child: Icon(
+                            slot.done ? Icons.check_circle : Icons.schedule,
+                            color: slot.done
+                                ? const Color(0xFF66BB6A)
+                                : AppColors.accentGold,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: AppColors.textCream,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              if (slot.timeLabel.trim().isNotEmpty ||
+                                  subtitle.trim().isNotEmpty)
                                 Text(
-                                  title,
-                                  maxLines: 1,
+                                  [
+                                    if (slot.timeLabel.trim().isNotEmpty)
+                                      slot.timeLabel.trim(),
+                                    if (subtitle.trim().isNotEmpty)
+                                      subtitle.trim(),
+                                  ].join(' • '),
+                                  maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                    color: AppColors.textCream,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.creamDim,
+                                    fontSize: 11,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                if (slot.timeLabel.trim().isNotEmpty || subtitle.trim().isNotEmpty)
-                                  Text(
-                                    [
-                                      if (slot.timeLabel.trim().isNotEmpty) slot.timeLabel.trim(),
-                                      if (subtitle.trim().isNotEmpty) subtitle.trim(),
-                                    ].join(' • '),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: AppColors.creamDim,
-                                      fontSize: 11,
-                                    ),
-                                  ),
-                              ],
-                            ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.chevron_right, size: 18, color: AppColors.creamDim),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.chevron_right,
+                            size: 18, color: AppColors.creamDim),
+                      ],
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
           ],
+        ),
         ),
       ),
     );
