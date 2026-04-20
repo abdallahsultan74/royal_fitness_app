@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../domain/daily_stat.dart';
 import '../domain/workout_session.dart';
+import '../domain/workout_session_item.dart';
 import '../presentation/models/local_exercise_item.dart';
 
 class WorkoutRepository {
@@ -214,5 +215,76 @@ class WorkoutRepository {
       _client.removeChannel(channel);
     };
     return controller.stream;
+  }
+
+  Future<List<DailyStat>> fetchMonthStats({
+    required int year,
+    required int month,
+  }) async {
+    final start = DateTime(year, month, 1);
+    final end = DateTime(year, month + 1, 1);
+    final startKey = dateKey(start);
+    final endKey = dateKey(end);
+    final rows = await _client
+        .from('daily_stats')
+        .select()
+        .eq('user_id', _uid)
+        .gte('date_key', startKey)
+        .lt('date_key', endKey)
+        .order('date_key', ascending: true);
+    return rows.map((data) {
+      return DailyStat(
+        dateKey: data['date_key']?.toString() ?? '',
+        totalMinutes: (data['total_minutes'] as num? ?? 0).toInt(),
+        totalCalories: (data['total_calories'] as num? ?? 0).toInt(),
+        completedExercises: (data['completed_exercises'] as num? ?? 0).toInt(),
+        sessionCount: (data['session_count'] as num? ?? 0).toInt(),
+        steps: (data['steps'] as num? ?? 0).toInt(),
+      );
+    }).toList(growable: false);
+  }
+
+  Future<List<WorkoutSession>> fetchDaySessions({
+    required DateTime day,
+  }) async {
+    final key = dateKey(day);
+    final rows = await _client
+        .from('workout_sessions')
+        .select()
+        .eq('user_id', _uid)
+        .eq('date_key', key)
+        .order('started_at', ascending: true);
+    return rows.map((data) {
+      return WorkoutSession(
+        id: data['id'].toString(),
+        startedAt:
+            DateTime.tryParse(data['started_at']?.toString() ?? '') ?? day,
+        endedAt: DateTime.tryParse(data['ended_at']?.toString() ?? ''),
+        durationSec: (data['duration_sec'] as num? ?? 0).toInt(),
+        calories: (data['calories'] as num? ?? 0).toInt(),
+        exerciseCount: (data['exercise_count'] as num? ?? 0).toInt(),
+        completed: data['completed'] == true,
+        dateKey: data['date_key']?.toString() ?? key,
+      );
+    }).toList(growable: false);
+  }
+
+  Future<List<WorkoutSessionItem>> fetchSessionItems({
+    required String sessionId,
+  }) async {
+    final rows = await _client
+        .from('workout_session_items')
+        .select('exercise_name,exercise_name_ar,minutes,calories,done')
+        .eq('session_id', sessionId)
+        .order('id', ascending: true);
+    return rows.map((data) {
+      return WorkoutSessionItem(
+        exerciseName: data['exercise_name']?.toString() ?? '',
+        exerciseNameAr: data['exercise_name_ar']?.toString() ?? '',
+        minutes: (data['minutes'] as num? ?? 0).toInt(),
+        calories: (data['calories'] as num? ?? 0).toInt(),
+        done: data['done'] == true,
+      );
+    }).toList(growable: false);
   }
 }

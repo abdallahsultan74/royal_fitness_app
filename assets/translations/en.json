@@ -297,4 +297,8 @@
   "profile_password_updated": "Password updated.",
   "progress_weekly_weight_reminder": "It's been a week — log your weight to keep tracking accurate.",
   "progress_weight_log_list": "Recent weight entries"
+  ,
+  "progress_no_workout_logs": "No workout logs for this day.",
+  "progress_session_completed": "Completed",
+  "progress_session_incomplete": "Incomplete"
 }

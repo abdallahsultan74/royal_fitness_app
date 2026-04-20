@@ -297,4 +297,8 @@
   "profile_password_updated": "تم تحديث كلمة المرور.",
   "progress_weekly_weight_reminder": "مرّ أسبوع — سجّل وزنك ليبقى التتبع دقيقاً.",
   "progress_weight_log_list": "سجل الوزن الأخير"
+  ,
+  "progress_no_workout_logs": "لا يوجد سجل تمارين لهذا اليوم.",
+  "progress_session_completed": "مكتمل",
+  "progress_session_incomplete": "غير مكتمل"
 }
