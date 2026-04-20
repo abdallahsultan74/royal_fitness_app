@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/common_widgets/royal_tab_scaffold.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/ui/royal_feedback.dart';
+import '../../../home/presentation/pages/plan_slot_detail_page.dart';
+import '../../../plans/data/home_plan_json_slots.dart';
+import '../../../plans/data/my_plan_repository.dart';
 import '../../../workout/data/workout_repository.dart';
 import '../../../workout/domain/workout_session.dart';
 import '../../../workout/domain/workout_session_item.dart';
@@ -19,11 +23,14 @@ class DailyWorkoutLogPage extends StatefulWidget {
 
 class _DailyWorkoutLogPageState extends State<DailyWorkoutLogPage> {
   final WorkoutRepository _repo = WorkoutRepository();
+  final MyPlanRepository _planRepo = MyPlanRepository();
 
   bool _loading = true;
   String? _error;
   List<WorkoutSession> _sessions = const [];
   final Map<String, List<WorkoutSessionItem>> _itemsBySession = {};
+  MyActivePlan? _plan;
+  List<HomeTodayPlanSlot> _planSlots = const [];
 
   @override
   void initState() {
@@ -37,6 +44,11 @@ class _DailyWorkoutLogPageState extends State<DailyWorkoutLogPage> {
       _error = null;
     });
     try {
+      // Load assigned plan (if any). Current plan json is slot-based (not per-date),
+      // so we show the same slots for any selected day while the assignment is active.
+      final plan = await _planRepo.fetchMyActivePlan();
+      final slots = parseHomePlanSlotsFromJson(plan?.jsonPlan ?? const <String, dynamic>{});
+
       final sessions = await _repo.fetchDaySessions(day: widget.day);
       final itemsBy = <String, List<WorkoutSessionItem>>{};
       for (final s in sessions) {
@@ -44,6 +56,8 @@ class _DailyWorkoutLogPageState extends State<DailyWorkoutLogPage> {
       }
       if (!mounted) return;
       setState(() {
+        _plan = plan;
+        _planSlots = slots;
         _sessions = sessions;
         _itemsBySession
           ..clear()
@@ -89,28 +103,131 @@ class _DailyWorkoutLogPageState extends State<DailyWorkoutLogPage> {
                     ),
                   ),
                 )
-              else if (_sessions.isEmpty)
-                RoyalGlassPanel(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    'progress_no_workout_logs'.tr(),
-                    style: const TextStyle(
-                      color: AppColors.creamDim,
-                      fontSize: 12,
-                    ),
-                  ),
-                )
               else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _sessions.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, i) {
-                    final s = _sessions[i];
-                    final items = _itemsBySession[s.id] ?? const [];
-                    return _sessionCard(context, s, items);
-                  },
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_planSlots.isNotEmpty) ...[
+                      Text(
+                        'progress_plan_for_day'.tr(),
+                        style: const TextStyle(
+                          color: AppColors.textCream,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _planSlots.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, i) {
+                          final slot = _planSlots[i];
+                          return RoyalGlassPanel(
+                            padding: const EdgeInsets.all(14),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(24),
+                              onTap: () async {
+                                await RoyalFeedback.tap(context);
+                                if (!context.mounted) return;
+                                Navigator.of(context).push<void>(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => PlanSlotDetailPage(
+                                      slot: slot,
+                                      planTitle: _plan?.title,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 42,
+                                    height: 42,
+                                    alignment: Alignment.center,
+                                    decoration: BoxDecoration(
+                                      color: slot.done
+                                          ? const Color.fromRGBO(102, 187, 106, 0.12)
+                                          : AppColors.goldDim,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: AppColors.glassBorder),
+                                    ),
+                                    child: Icon(
+                                      slot.done ? Icons.check : Icons.timer,
+                                      size: 18,
+                                      color: slot.done ? const Color(0xFF66BB6A) : AppColors.accentGold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          slot.displayTitle(lang),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: AppColors.textCream,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          slot.timeLabel.trim().isEmpty ? '—' : slot.timeLabel.trim(),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(color: AppColors.creamDim, fontSize: 11),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.chevron_right, size: 18, color: AppColors.creamDim),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    Text(
+                      'progress_workout_log_for_day'.tr(),
+                      style: const TextStyle(
+                        color: AppColors.textCream,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    if (_sessions.isEmpty)
+                      RoyalGlassPanel(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          'progress_no_workout_logs'.tr(),
+                          style: const TextStyle(
+                            color: AppColors.creamDim,
+                            fontSize: 12,
+                          ),
+                        ),
+                      )
+                    else
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _sessions.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, i) {
+                          final s = _sessions[i];
+                          final items = _itemsBySession[s.id] ?? const [];
+                          return _sessionCard(context, s, items);
+                        },
+                      ),
+                  ],
                 ),
             ],
           ),
