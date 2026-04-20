@@ -43,6 +43,13 @@ class ProfileRepository {
       );
       // #endregion
       final data = rows.isNotEmpty ? rows.first : <String, dynamic>{};
+      final rawFlags = data['feature_flags'];
+      Map<String, dynamic> featureFlags = const <String, dynamic>{};
+      if (rawFlags is Map) {
+        featureFlags = Map<String, dynamic>.from(
+          rawFlags.map((k, v) => MapEntry(k.toString(), v)),
+        );
+      }
       return UserProfile(
         uid: uid,
         email: _user.email ?? (data['email']?.toString() ?? ''),
@@ -53,6 +60,7 @@ class ProfileRepository {
         plan: data['plan']?.toString() ?? 'basic',
         planExpiresAt:
             DateTime.tryParse(data['plan_expires_at']?.toString() ?? ''),
+        featureFlags: featureFlags,
         photoUrl: data['photo_url']?.toString(),
         whatsappPhone: data['whatsapp_phone']?.toString(),
         heightCm: _toDouble(data['height_cm']),
@@ -73,6 +81,8 @@ class ProfileRepository {
     String? language,
     String? goal,
     String? plan,
+    DateTime? planExpiresAt,
+    Map<String, dynamic>? featureFlags,
     String? photoUrl,
     String? whatsappPhone,
     double? heightCm,
@@ -89,6 +99,8 @@ class ProfileRepository {
       if (language != null) 'language': language,
       if (goal != null) 'goal': goal,
       if (plan != null) 'plan': plan,
+      if (planExpiresAt != null) 'plan_expires_at': planExpiresAt.toUtc().toIso8601String(),
+      if (featureFlags != null) 'feature_flags': featureFlags,
       if (photoUrl != null) 'photo_url': photoUrl,
       // Allow clearing the number by sending empty string -> null
       if (whatsappPhone != null) 'whatsapp_phone': whatsappPhone.trim().isEmpty ? null : whatsappPhone.trim(),

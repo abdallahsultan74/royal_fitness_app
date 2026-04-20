@@ -7,6 +7,7 @@ class UserProfile {
     required this.goal,
     required this.plan,
     this.planExpiresAt,
+    this.featureFlags = const <String, dynamic>{},
     this.photoUrl,
     this.whatsappPhone,
     this.heightCm,
@@ -24,6 +25,8 @@ class UserProfile {
   final String goal;
   final String plan;
   final DateTime? planExpiresAt;
+  /// Admin-tunable flags, e.g. `{ "admin_plans": true, "challenges": false }`.
+  final Map<String, dynamic> featureFlags;
   final String? photoUrl;
   final String? whatsappPhone;
   final double? heightCm;
@@ -39,6 +42,7 @@ class UserProfile {
     String? goal,
     String? plan,
     DateTime? planExpiresAt,
+    Map<String, dynamic>? featureFlags,
     String? photoUrl,
     String? whatsappPhone,
     double? heightCm,
@@ -56,6 +60,7 @@ class UserProfile {
       goal: goal ?? this.goal,
       plan: plan ?? this.plan,
       planExpiresAt: planExpiresAt ?? this.planExpiresAt,
+      featureFlags: featureFlags ?? this.featureFlags,
       photoUrl: photoUrl ?? this.photoUrl,
       whatsappPhone: whatsappPhone ?? this.whatsappPhone,
       heightCm: heightCm ?? this.heightCm,

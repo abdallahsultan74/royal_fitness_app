@@ -11,6 +11,7 @@ class ChallengeProgress {
     required this.completedDays,
     required this.progressPercent,
     required this.status,
+    this.coverImageUrl,
   });
 
   final String userChallengeId;
@@ -24,9 +25,26 @@ class ChallengeProgress {
   final int completedDays;
   final double progressPercent;
   final String status;
+  final String? coverImageUrl;
 
   String displayTitle(String languageCode) {
     return languageCode == 'ar' && titleAr.isNotEmpty ? titleAr : title;
+  }
+
+  /// Minimal template for [ChallengeDetailsPage] (details load from API).
+  ChallengeTemplate toTemplate() {
+    return ChallengeTemplate(
+      id: challengeId,
+      slug: slug,
+      title: title,
+      titleAr: titleAr,
+      description: '',
+      descriptionAr: '',
+      level: level,
+      daysCount: daysCount,
+      isActive: true,
+      coverImageUrl: coverImageUrl,
+    );
   }
 }
 
@@ -41,6 +59,7 @@ class ChallengeTemplate {
     required this.level,
     required this.daysCount,
     required this.isActive,
+    this.coverImageUrl,
   });
 
   final String id;
@@ -52,6 +71,7 @@ class ChallengeTemplate {
   final String level;
   final int daysCount;
   final bool isActive;
+  final String? coverImageUrl;
 
   String displayTitle(String languageCode) {
     return languageCode == 'ar' && titleAr.isNotEmpty ? titleAr : title;

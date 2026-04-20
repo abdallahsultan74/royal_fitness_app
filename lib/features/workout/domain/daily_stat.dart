@@ -5,6 +5,7 @@ class DailyStat {
     required this.totalCalories,
     required this.completedExercises,
     required this.sessionCount,
+    this.steps = 0,
   });
 
   final String dateKey;
@@ -12,4 +13,6 @@ class DailyStat {
   final int totalCalories;
   final int completedExercises;
   final int sessionCount;
+  /// Recorded steps (device sync). When 0, UI may estimate from active minutes.
+  final int steps;
 }

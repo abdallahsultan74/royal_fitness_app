@@ -43,7 +43,8 @@ class _ChallengeDetailsPageState extends State<ChallengeDetailsPage> {
       _error = null;
     });
     try {
-      final d = await _repo.fetchChallengeDetails(widget.template.id);
+      final id = widget.template.id.trim();
+      final d = await _repo.fetchChallengeDetails(id);
       if (!mounted) return;
       setState(() {
         _details = d;
@@ -51,14 +52,62 @@ class _ChallengeDetailsPageState extends State<ChallengeDetailsPage> {
       });
     } catch (e) {
       if (!mounted) return;
+      final raw = e.toString();
+      final message = raw.contains('INVALID_CHALLENGE_ID')
+          ? 'challenge_details_invalid_id'.tr()
+          : raw.contains('CHALLENGE_NOT_FOUND')
+              ? 'challenge_details_not_found'.tr()
+              : 'challenge_details_load_error'.tr();
       setState(() {
-        _error = e.toString();
+        _error = message;
         _loading = false;
       });
     }
   }
 
   bool get _isActive => widget.active?.slug == widget.template.slug;
+
+  Future<void> _confirmLeave() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.emeraldDark,
+        title: Text('challenge_leave_title'.tr(), style: const TextStyle(color: AppColors.textCream)),
+        content: Text(
+          'challenge_leave_confirm'.tr(),
+          style: const TextStyle(color: AppColors.creamDim),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('dialog_cancel'.tr(), style: const TextStyle(color: AppColors.creamDim)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFFF8A80),
+              foregroundColor: AppColors.emeraldDark,
+            ),
+            child: Text('challenge_leave'.tr()),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await _progress.abandonActiveChallenge();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('challenge_left'.tr())),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
 
   Future<void> _start() async {
     await RoyalFeedback.tap(context);
@@ -101,22 +150,56 @@ class _ChallengeDetailsPageState extends State<ChallengeDetailsPage> {
                     const SizedBox(height: 6),
                     Text(desc, style: const TextStyle(color: AppColors.creamDim, fontSize: 12)),
                     const SizedBox(height: 12),
-                    Row(
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 8,
                       children: [
                         _pill(Icons.schedule, '${widget.template.daysCount} ${'challenges_days'.tr()}'),
-                        const SizedBox(width: 10),
                         _pill(Icons.fitness_center, _levelLabel(widget.template.level)),
-                        const Spacer(),
-                        if (!_isActive)
-                          FilledButton(
-                            onPressed: _start,
-                            style: FilledButton.styleFrom(backgroundColor: AppColors.accentGold, foregroundColor: AppColors.emeraldDark),
-                            child: Text('challenge_start'.tr()),
-                          )
-                        else
-                          const Icon(Icons.check_circle, color: AppColors.accentGold),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    if (!_isActive)
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: _start,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.accentGold,
+                            foregroundColor: AppColors.emeraldDark,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: Text('challenge_start'.tr()),
+                        ),
+                      )
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.check_circle, color: AppColors.accentGold, size: 22),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'challenge_status_active'.tr(),
+                                  style: const TextStyle(color: AppColors.textCream, fontSize: 14),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          OutlinedButton.icon(
+                            onPressed: _confirmLeave,
+                            icon: const Icon(Icons.logout, size: 18, color: Color(0xFFFF8A80)),
+                            label: Text('challenge_leave'.tr(), style: const TextStyle(color: Color(0xFFFF8A80))),
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Color(0x66FF8A80)),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
@@ -125,8 +208,26 @@ class _ChallengeDetailsPageState extends State<ChallengeDetailsPage> {
                 const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(color: AppColors.accentGold)))
               else if (_error != null)
                 RoyalGlassPanel(
-                  padding: const EdgeInsets.all(14),
-                  child: Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 12)),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        _error!,
+                        style: const TextStyle(color: Colors.redAccent, fontSize: 13, height: 1.35),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton.icon(
+                        onPressed: _load,
+                        icon: const Icon(Icons.refresh),
+                        label: Text('retry'.tr()),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.accentGold,
+                          foregroundColor: AppColors.emeraldDark,
+                        ),
+                      ),
+                    ],
+                  ),
                 )
               else
                 ...[

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../challenges/presentation/pages/challenges_page.dart';
+import '../../../core/ads/admob_banner.dart';
 import '../../home/presentation/pages/home_page.dart';
 import '../../profile/presentation/pages/settings_page.dart';
 import '../../progress/presentation/pages/progress_page.dart';
@@ -51,9 +52,16 @@ class _MainShellState extends State<MainShell> {
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: MainShellScope(
         selectTab: (i) => setState(() => _index = i.clamp(0, _pages.length - 1)),
-        child: IndexedStack(
-          index: _index,
-          children: _pages,
+        child: Column(
+          children: [
+            Expanded(
+              child: IndexedStack(
+                index: _index,
+                children: _pages,
+              ),
+            ),
+            const AdMobBanner(),
+          ],
         ),
       ),
       bottomNavigationBar: RoyalBottomNav(

@@ -1,6 +1,7 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/common_widgets/royal_tab_scaffold.dart';
@@ -12,7 +13,9 @@ import '../../../auth/presentation/widgets/royal_gold_shimmer.dart';
 import '../../../notifications/presentation/pages/user_notifications_page.dart';
 import '../../data/profile_repository.dart';
 import '../../domain/user_profile.dart';
+import 'health_reports_page.dart';
 import 'profile_page.dart';
+import 'subscription_confirm_page.dart';
 
 /// Settings tab (Figma `SettingsScreen`).
 class SettingsPage extends StatefulWidget {
@@ -27,8 +30,6 @@ class _SettingsPageState extends State<SettingsPage> {
   final ProfileRepository _profileRepository = ProfileRepository();
   bool _notifications = false;
   bool _voiceCoach = true;
-  bool _darkMode = true;
-  bool _requestingPlan = false;
 
   @override
   Widget build(BuildContext context) {
@@ -260,48 +261,51 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             showChevron: false,
           ),
-          _menuTile(
-            icon: Icons.dark_mode_outlined,
-            titleKey: 'settings_dark_mode',
-            trailing: _goldSwitch(
-              value: _darkMode,
-              onChanged: (v) => setState(() => _darkMode = v),
-            ),
-            showChevron: false,
-          ),
           const SizedBox(height: 8),
           _sectionTitle('settings_section_general'.tr()),
           _menuTile(
             icon: Icons.favorite_outline,
             titleKey: 'settings_health_data',
-          ),
-          _menuTile(
-            icon: Icons.shield_outlined,
-            titleKey: 'settings_privacy',
-          ),
-          _menuTile(
-            icon: Icons.share_outlined,
-            titleKey: 'settings_share_app',
-          ),
-          _menuTile(
-            icon: Icons.star_outline,
-            titleKey: 'settings_rate_us',
+            onTap: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => const HealthReportsPage(),
+                ),
+              );
+            },
           ),
           _menuTile(
             icon: Icons.workspace_premium_outlined,
-            titleKey: 'Request plan activation',
+            titleKey: 'settings_request_plan_activation',
             valueText: 'Pro',
-            onTap: _requestPlanActivation,
+            onTap: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => const SubscriptionConfirmPage(
+                    kind: SubscriptionRequestKind.activate,
+                  ),
+                ),
+              );
+            },
           ),
           _menuTile(
             icon: Icons.autorenew,
-            titleKey: 'Request renewal',
+            titleKey: 'settings_request_renewal',
             valueText: 'Pro',
-            onTap: _requestRenewal,
+            onTap: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => const SubscriptionConfirmPage(
+                    kind: SubscriptionRequestKind.renew,
+                  ),
+                ),
+              );
+            },
           ),
           _menuTile(
             icon: Icons.help_outline,
-            titleKey: 'settings_help',
+            titleKey: 'settings_contact',
+            onTap: _contactSupport,
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
@@ -552,105 +556,16 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Future<void> _requestPlanActivation() async {
-    if (_requestingPlan) return;
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-    setState(() => _requestingPlan = true);
-    try {
-      final pending = await Supabase.instance.client
-          .from('subscription_requests')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('request_kind', 'activate')
-          .eq('status', 'pending')
-          .limit(1);
-      if ((pending as List).isNotEmpty) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You already have a pending subscription request.'),
-          ),
-        );
-        return;
-      }
-
-      await Supabase.instance.client.from('subscription_requests').insert(<String, dynamic>{
-        'user_id': user.id,
-        'requested_plan': 'pro',
-        'request_kind': 'activate',
-        'duration_days': 30,
-        'note': 'Requested from mobile settings',
-        'status': 'pending',
-      });
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Plan activation request sent to admin.'),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to send request: ${e.toString()}'),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _requestingPlan = false);
-      }
-    }
+  Future<void> _contactSupport() async {
+    final client = Supabase.instance.client;
+    final user = client.auth.currentUser;
+    final email = user?.email ?? '';
+    final uid = user?.id ?? '';
+    final subject = Uri.encodeComponent('Royal Fitness Support');
+    final body = Uri.encodeComponent('User: $email\\nUID: $uid\\n\\nMessage:');
+    final uri = Uri.parse('mailto:admin@royalfitness.com?subject=$subject&body=$body');
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  Future<void> _requestRenewal() async {
-    if (_requestingPlan) return;
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-    setState(() => _requestingPlan = true);
-    try {
-      final pending = await Supabase.instance.client
-          .from('subscription_requests')
-          .select('id')
-          .eq('user_id', user.id)
-          .eq('request_kind', 'renew')
-          .eq('status', 'pending')
-          .limit(1);
-      if ((pending as List).isNotEmpty) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You already have a pending renewal request.'),
-          ),
-        );
-        return;
-      }
-
-      await Supabase.instance.client.from('subscription_requests').insert(<String, dynamic>{
-        'user_id': user.id,
-        'requested_plan': 'pro',
-        'request_kind': 'renew',
-        'duration_days': 30,
-        'note': 'Renewal requested from mobile settings',
-        'status': 'pending',
-      });
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Renewal request sent to staff.'),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to send request: ${e.toString()}'),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _requestingPlan = false);
-      }
-    }
-  }
+  // Old direct insert flow removed; replaced by SubscriptionConfirmPage.
 }

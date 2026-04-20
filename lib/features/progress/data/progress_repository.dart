@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:easy_localization/easy_localization.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../challenges/domain/challenge_progress.dart';
+import '../../plans/data/home_plan_json_slots.dart';
 import '../domain/weight_log.dart';
 
 class ProgressRepository {
@@ -87,6 +89,7 @@ class ProgressRepository {
         level: data['level']?.toString() ?? 'beginner',
         daysCount: (data['days_count'] as num? ?? 30).toInt(),
         isActive: data['is_active'] == true,
+        coverImageUrl: data['cover_image_url']?.toString(),
       );
     }).toList(growable: false);
   }
@@ -101,6 +104,62 @@ class ProgressRepository {
     } catch (e) {
       throw Exception(e.toString());
     }
+  }
+
+  /// Cancels the user's active challenge (same effect as switching challenges server-side).
+  Future<void> abandonActiveChallenge() async {
+    try {
+      await _client
+          .from('user_challenges')
+          .update(<String, dynamic>{
+            'status': 'cancelled',
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          })
+          .eq('user_id', _uid)
+          .eq('status', 'active');
+    } on PostgrestException catch (e) {
+      throw Exception(e.message);
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
+  /// Today's row(s) from [user_challenge_days] for the active enrollment (home "Today's plan").
+  Future<List<HomeTodayPlanSlot>> fetchTodayChallengePlanSlots(ChallengeProgress active) async {
+    final rows = await _client
+        .from('user_challenge_days')
+        .select()
+        .eq('user_challenge_id', active.userChallengeId)
+        .eq('day_number', active.currentDay)
+        .limit(1);
+    if (rows.isEmpty) return const [];
+    final m = Map<String, dynamic>.from(rows.first as Map);
+    final title = m['title']?.toString() ?? '';
+    final titleAr = m['title_ar']?.toString() ?? '';
+    final mins = (m['target_minutes'] as num? ?? 0).toInt();
+    final ex = (m['target_exercises'] as num? ?? 0).toInt();
+    final cal = (m['target_calories'] as num? ?? 0).toInt();
+    final done = m['completed'] == true;
+    final dayLine = 'challenge_progress_day'.tr(
+      args: ['${active.currentDay}', '${active.daysCount}'],
+    );
+    final desc = 'home_plan_challenge_targets'.tr(
+      namedArgs: {
+        'exercises': '$ex',
+        'calories': '$cal',
+        'minutes': '$mins',
+      },
+    );
+    return [
+      HomeTodayPlanSlot(
+        title: title.isEmpty ? 'home_plan_challenge_day_fallback'.tr() : title,
+        titleAr: titleAr,
+        timeLabel: dayLine,
+        description: desc,
+        descriptionAr: desc,
+        done: done,
+      ),
+    ];
   }
 
   Future<void> completeChallengeDay(int targetDay) async {
@@ -138,6 +197,7 @@ class ProgressRepository {
           completedDays: (data['completed_days'] as num? ?? 0).toInt(),
           progressPercent: (data['progress_percent'] as num? ?? 0).toDouble(),
           status: data['status']?.toString() ?? 'active',
+          coverImageUrl: data['cover_image_url']?.toString(),
         ),
       );
     }

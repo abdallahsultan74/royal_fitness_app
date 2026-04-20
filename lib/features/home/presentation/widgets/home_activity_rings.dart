@@ -12,10 +12,20 @@ const Color _kStandColor = Color(0xFF66BB6A);
 class HomeActivityRings extends StatelessWidget {
   const HomeActivityRings({
     super.key,
-    this.progress = 0.68,
+    required this.outerFrac,
+    required this.midFrac,
+    required this.innerFrac,
+    required this.centerPercent,
   });
 
-  final double progress;
+  /// Calories ring fill (0–1).
+  final double outerFrac;
+  /// Active minutes ring fill (0–1).
+  final double midFrac;
+  /// Steps ring fill (0–1).
+  final double innerFrac;
+  /// Label in center (e.g. average daily goal %).
+  final int centerPercent;
 
   @override
   Widget build(BuildContext context) {
@@ -28,16 +38,16 @@ class HomeActivityRings extends StatelessWidget {
           CustomPaint(
             size: const Size(155, 155),
             painter: _TripleRingsPainter(
-              outerFrac: 1 - 0.32,
-              midFrac: 1 - 0.25,
-              innerFrac: 1 - 0.42,
+              outerFrac: outerFrac.clamp(0.0, 1.0),
+              midFrac: midFrac.clamp(0.0, 1.0),
+              innerFrac: innerFrac.clamp(0.0, 1.0),
             ),
           ),
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                '${(progress * 100).round()}%',
+                '$centerPercent%',
                 style: const TextStyle(
                   color: AppColors.accentGold,
                   fontSize: 28,

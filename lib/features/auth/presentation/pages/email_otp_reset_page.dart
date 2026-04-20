@@ -96,7 +96,9 @@ class _EmailOtpResetPageState extends State<EmailOtpResetPage> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -111,15 +113,22 @@ class _EmailOtpResetPageState extends State<EmailOtpResetPage> {
           ),
           const Positioned.fill(child: RoyalGeometricBackground()),
           SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 420),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(24, 24, 24, 24 + bottomInset),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      SizedBox(
+                        height: (MediaQuery.sizeOf(context).height -
+                                MediaQuery.paddingOf(context).vertical) *
+                            0.06,
+                      ),
                       Text(
                         'otp_reset_title'.tr(),
                         style: const TextStyle(
@@ -182,6 +191,7 @@ class _EmailOtpResetPageState extends State<EmailOtpResetPage> {
                           style: const TextStyle(color: AppColors.accentGold),
                         ),
                       ),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),

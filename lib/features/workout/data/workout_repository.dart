@@ -85,6 +85,7 @@ class WorkoutRepository {
       'completed_exercises':
           (prev['completed_exercises'] as num? ?? 0) + completedExercises,
       'session_count': (prev['session_count'] as num? ?? 0) + 1,
+      'steps': (prev['steps'] as num? ?? 0).toInt(),
     });
   }
 
@@ -106,6 +107,7 @@ class WorkoutRepository {
           totalCalories: (data['total_calories'] as num? ?? 0).toInt(),
           completedExercises: (data['completed_exercises'] as num? ?? 0).toInt(),
           sessionCount: (data['session_count'] as num? ?? 0).toInt(),
+          steps: (data['steps'] as num? ?? 0).toInt(),
         ),
       );
     }
@@ -145,6 +147,7 @@ class WorkoutRepository {
           totalCalories: (data['total_calories'] as num? ?? 0).toInt(),
           completedExercises: (data['completed_exercises'] as num? ?? 0).toInt(),
           sessionCount: (data['session_count'] as num? ?? 0).toInt(),
+          steps: (data['steps'] as num? ?? 0).toInt(),
         );
       }).toList(growable: false);
       controller.add(mapped.reversed.toList(growable: false));

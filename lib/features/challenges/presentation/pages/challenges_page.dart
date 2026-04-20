@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
@@ -291,13 +293,10 @@ class _ChallengesPageState extends State<ChallengesPage> {
                                 ? RoyalGlassVariant.gold
                                 : RoyalGlassVariant.standard,
                             padding: const EdgeInsets.all(16),
-                            child: InkWell(
+                              child: InkWell(
                               borderRadius: BorderRadius.circular(24),
-                              onTap: () async {
-                                // Capture navigator before any await to satisfy lint and avoid using context across async gap.
+                              onTap: () {
                                 final nav = Navigator.of(context);
-                                await RoyalFeedback.tap(context);
-                                if (!mounted) return;
                                 nav.push<void>(
                                   MaterialPageRoute<void>(
                                     builder: (_) => ChallengeDetailsPage(
@@ -306,6 +305,7 @@ class _ChallengesPageState extends State<ChallengesPage> {
                                     ),
                                   ),
                                 );
+                                unawaited(RoyalFeedback.tap(context));
                               },
                               child: Stack(
                                 children: [
@@ -315,121 +315,142 @@ class _ChallengesPageState extends State<ChallengesPage> {
                                       borderRadius: BorderRadius.all(Radius.circular(24)),
                                     ),
                                   ),
-                                Row(
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    Container(
-                                      width: 52,
-                                      height: 52,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: isCurrent
-                                            ? AppColors.goldDim
-                                            : const Color.fromRGBO(255, 255, 255, 0.05),
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(
-                                          color: isCurrent
-                                              ? AppColors.goldBorder
-                                              : AppColors.glassBorder,
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          width: 52,
+                                          height: 52,
+                                          alignment: Alignment.center,
+                                          decoration: BoxDecoration(
+                                            color: isCurrent
+                                                ? AppColors.goldDim
+                                                : const Color.fromRGBO(255, 255, 255, 0.05),
+                                            borderRadius: BorderRadius.circular(16),
+                                            border: Border.all(
+                                              color: isCurrent
+                                                  ? AppColors.goldBorder
+                                                  : AppColors.glassBorder,
+                                            ),
+                                          ),
+                                          child: Icon(
+                                            isCurrent ? Icons.emoji_events : Icons.star_outline,
+                                            size: 22,
+                                            color: isCurrent
+                                                ? AppColors.accentGold
+                                                : AppColors.creamDim,
+                                          ),
                                         ),
-                                      ),
-                                      child: Icon(
-                                        isCurrent ? Icons.emoji_events : Icons.star_outline,
-                                        size: 22,
-                                        color: isCurrent
-                                            ? AppColors.accentGold
-                                            : AppColors.creamDim,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 14),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            template.displayTitle(context.locale.languageCode),
-                                            style: const TextStyle(
-                                              color: AppColors.textCream,
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            template.displayDescription(context.locale.languageCode),
-                                            style: const TextStyle(
-                                              color: AppColors.creamDim,
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Wrap(
-                                            spacing: 10,
-                                            runSpacing: 4,
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              _meta(Icons.schedule, '${template.daysCount} ${'challenges_days'.tr()}'),
-                                              _meta(Icons.fitness_center, _levelLabel(template.level)),
-                                            ],
-                                          ),
-                                          if (isCurrent) ...[
-                                            const SizedBox(height: 8),
-                                            Row(
-                                              children: [
-                                                Expanded(
-                                                  child: ClipRRect(
-                                                    borderRadius: BorderRadius.circular(999),
-                                                    child: SizedBox(
-                                                      height: 4,
-                                                      child: ColoredBox(
-                                                        color: const Color.fromRGBO(212, 175, 55, 0.12),
-                                                        child: Align(
-                                                          alignment: Alignment.centerLeft,
-                                                          child: FractionallySizedBox(
-                                                            widthFactor: progressFactor,
-                                                            child: const ColoredBox(
-                                                              color: AppColors.accentGold,
+                                              Text(
+                                                template.displayTitle(context.locale.languageCode),
+                                                style: const TextStyle(
+                                                  color: AppColors.textCream,
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                template.displayDescription(context.locale.languageCode),
+                                                style: const TextStyle(
+                                                  color: AppColors.creamDim,
+                                                  fontSize: 11,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Wrap(
+                                                spacing: 10,
+                                                runSpacing: 4,
+                                                children: [
+                                                  _meta(Icons.schedule, '${template.daysCount} ${'challenges_days'.tr()}'),
+                                                  _meta(Icons.fitness_center, _levelLabel(template.level)),
+                                                ],
+                                              ),
+                                              if (isCurrent) ...[
+                                                const SizedBox(height: 8),
+                                                Row(
+                                                  children: [
+                                                    Expanded(
+                                                      child: ClipRRect(
+                                                        borderRadius: BorderRadius.circular(999),
+                                                        child: SizedBox(
+                                                          height: 4,
+                                                          child: ColoredBox(
+                                                            color: const Color.fromRGBO(212, 175, 55, 0.12),
+                                                            child: Align(
+                                                              alignment: Alignment.centerLeft,
+                                                              child: FractionallySizedBox(
+                                                                widthFactor: progressFactor,
+                                                                child: const ColoredBox(
+                                                                  color: AppColors.accentGold,
+                                                                ),
+                                                              ),
                                                             ),
                                                           ),
                                                         ),
                                                       ),
                                                     ),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 8),
-                                                Text(
-                                                  '$progress%',
-                                                  style: const TextStyle(
-                                                    color: AppColors.accentGold,
-                                                    fontSize: 10,
-                                                  ),
+                                                    const SizedBox(width: 8),
+                                                    Text(
+                                                      '$progress%',
+                                                      style: const TextStyle(
+                                                        color: AppColors.accentGold,
+                                                        fontSize: 10,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ],
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                    ConstrainedBox(
-                                      constraints: const BoxConstraints(maxWidth: 130),
-                                      child: FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        alignment: AlignmentDirectional.centerEnd,
-                                        child: TextButton(
-                                          onPressed: isCurrent ? null : () => _startChallenge(template),
-                                          style: TextButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                            minimumSize: const Size(0, 0),
-                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                            visualDensity: VisualDensity.compact,
-                                          ),
-                                          child: Text(
-                                            isCurrent ? 'Active' : 'challenge_start'.tr(),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: isCurrent ? AppColors.creamDim : AppColors.accentGold,
-                                            ),
+                                            ],
                                           ),
                                         ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Align(
+                                      alignment: AlignmentDirectional.centerEnd,
+                                      child: Wrap(
+                                        alignment: WrapAlignment.end,
+                                        spacing: 8,
+                                        runSpacing: 6,
+                                        children: [
+                                          if (isCurrent)
+                                            TextButton(
+                                              onPressed: () => _confirmLeaveChallenge(context),
+                                              style: TextButton.styleFrom(
+                                                foregroundColor: const Color(0xFFFF8A80),
+                                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                minimumSize: const Size(0, 0),
+                                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                              ),
+                                              child: Text('challenge_leave'.tr()),
+                                            ),
+                                          TextButton(
+                                            onPressed: isCurrent ? null : () => _startChallenge(template),
+                                            style: TextButton.styleFrom(
+                                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                              minimumSize: const Size(0, 0),
+                                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                              visualDensity: VisualDensity.compact,
+                                            ),
+                                            child: Text(
+                                              isCurrent ? 'challenge_status_active'.tr() : 'challenge_start'.tr(),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: isCurrent ? AppColors.creamDim : AppColors.accentGold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
@@ -479,6 +500,47 @@ class _ChallengesPageState extends State<ChallengesPage> {
         return 'challenge_level_intermediate'.tr();
       default:
         return 'challenge_level_beginner'.tr();
+    }
+  }
+
+  Future<void> _confirmLeaveChallenge(BuildContext dialogContext) async {
+    final ok = await showDialog<bool>(
+      context: dialogContext,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.emeraldDark,
+        title: Text('challenge_leave_title'.tr(), style: const TextStyle(color: AppColors.textCream)),
+        content: Text(
+          'challenge_leave_confirm'.tr(),
+          style: const TextStyle(color: AppColors.creamDim),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('dialog_cancel'.tr(), style: const TextStyle(color: AppColors.creamDim)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFFF8A80),
+              foregroundColor: AppColors.emeraldDark,
+            ),
+            child: Text('challenge_leave'.tr()),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    try {
+      await _progressRepository.abandonActiveChallenge();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('challenge_left'.tr())),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
     }
   }
 

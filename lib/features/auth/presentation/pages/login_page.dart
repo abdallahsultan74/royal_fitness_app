@@ -2,7 +2,6 @@
 // and figma/app/components/royal-theme.tsx
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -13,7 +12,6 @@ import 'email_otp_reset_page.dart';
 import '../widgets/gold_gradient_button.dart';
 import '../../../../core/common_widgets/royal_geometric_background.dart';
 import '../widgets/royal_glass_text_field.dart';
-import '../widgets/social_login_chip.dart';
 import '../widgets/royal_gold_shimmer.dart';
 
 /// Login screen — layout and tokens from Figma Make (`figma/`).
@@ -292,60 +290,6 @@ class _LoginPageState extends State<LoginPage> {
                                   label: 'login_sign_in'.tr(),
                                   onPressed: _loading ? null : _signIn,
                                   disabled: _loading,
-                                ),
-                                const SizedBox(height: 24),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        height: 1,
-                                        color: AppColors.glassBorder,
-                                      ),
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                      ),
-                                      child: Text(
-                                        'login_or'.tr(),
-                                        style: const TextStyle(
-                                          color: AppColors.creamDim,
-                                          fontSize: 11,
-                                          letterSpacing: 1,
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Container(
-                                        height: 1,
-                                        color: AppColors.glassBorder,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 24),
-                                Row(
-                                  children: [
-                                    SocialLoginChip(
-                                      label: 'login_google'.tr(),
-                                      leading: SvgPicture.asset(
-                                        'assets/svg/google_g.svg',
-                                        width: 18,
-                                        height: 18,
-                                      ),
-                                      onPressed: () {},
-                                    ),
-                                    const SizedBox(width: 12),
-                                    SocialLoginChip(
-                                      label: 'login_apple'.tr(),
-                                      leading: SvgPicture.asset(
-                                        'assets/svg/apple_logo.svg',
-                                        width: 18,
-                                        height: 18,
-                                      ),
-                                      onPressed: () {},
-                                    ),
-                                  ],
                                 ),
                                 const SizedBox(height: 24),
                                 Padding(

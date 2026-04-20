@@ -49,10 +49,18 @@ class ChallengeDetails {
 class ChallengesRepository {
   SupabaseClient get _client => Supabase.instance.client;
 
+  static final RegExp _uuid = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  );
+
   Future<ChallengeDetails> fetchChallengeDetails(String challengeId) async {
+    final id = challengeId.trim();
+    if (!_uuid.hasMatch(id)) {
+      throw Exception('INVALID_CHALLENGE_ID');
+    }
     final rows = await _client.rpc<List<dynamic>>(
       'api_challenge_details',
-      params: <String, dynamic>{'challenge_id': challengeId},
+      params: <String, dynamic>{'challenge_id': id},
     );
     if (rows.isEmpty) {
       throw Exception('CHALLENGE_NOT_FOUND');
