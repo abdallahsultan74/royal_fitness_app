@@ -257,6 +257,7 @@
   "subscription_activation_sent": "Activation request sent to staff.",
   "subscription_renewal_sent": "Renewal request sent to staff.",
   "subscription_cancel_sent": "Cancellation request sent to staff.",
+  "subscription_cancelled_now": "Subscription cancelled.",
   "subscription_cancel_warning": "This will request a subscription cancellation. Once approved by staff, your plan access will be revoked and premium features will be hidden.",
   "subscription_choose_package_required": "Please choose a package first.",
   "onboarding_logo_royal": "ROYAL",

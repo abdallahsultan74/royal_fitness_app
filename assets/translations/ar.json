@@ -257,6 +257,7 @@
   "subscription_activation_sent": "تم إرسال طلب التفعيل للطاقم.",
   "subscription_renewal_sent": "تم إرسال طلب التجديد للطاقم.",
   "subscription_cancel_sent": "تم إرسال طلب الإلغاء للطاقم.",
+  "subscription_cancelled_now": "تم إلغاء الاشتراك.",
   "subscription_cancel_warning": "سيتم إرسال طلب إلغاء الاشتراك. بعد موافقة الطاقم سيتم إيقاف الاشتراك وإخفاء المميزات والخطط المدفوعة.",
   "subscription_choose_package_required": "من فضلك اختر باقة أولاً.",
   "onboarding_logo_royal": "ROYAL",

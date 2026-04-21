@@ -393,13 +393,21 @@ class _SettingsPageState extends State<SettingsPage> {
                     onTap: pendingCancel
                         ? null
                         : () {
-                            Navigator.of(context).push<void>(
-                              MaterialPageRoute<void>(
-                                builder: (_) => const SubscriptionConfirmPage(
-                                  kind: SubscriptionRequestKind.cancel,
-                                ),
-                              ),
-                            );
+                            () async {
+                              await RoyalFeedback.tap(context);
+                              try {
+                                await Supabase.instance.client.rpc('api_my_cancel_subscription');
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('subscription_cancelled_now'.tr())),
+                                );
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(e.toString())),
+                                );
+                              }
+                            }();
                           },
                   ),
                 );
