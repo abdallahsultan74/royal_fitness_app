@@ -256,6 +256,8 @@
   "subscription_pending_exists": "You already have a pending request.",
   "subscription_activation_sent": "Activation request sent to staff.",
   "subscription_renewal_sent": "Renewal request sent to staff.",
+  "subscription_cancel_sent": "Cancellation request sent to staff.",
+  "subscription_cancel_warning": "This will request a subscription cancellation. Once approved by staff, your plan access will be revoked and premium features will be hidden.",
   "onboarding_logo_royal": "ROYAL",
   "onboarding_logo_fitness": "FITNESS",
   "onboarding_tagline": "TRAIN LIKE ROYALTY",

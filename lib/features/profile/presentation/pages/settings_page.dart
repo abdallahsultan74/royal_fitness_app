@@ -32,6 +32,45 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _notifications = false;
   bool _voiceCoach = true;
 
+  String? _packageName;
+  String? _packageNameForId;
+
+  Future<void> _loadPackageName(String? packageId, String langCode) async {
+    final id = (packageId ?? '').trim();
+    if (id.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _packageName = null;
+          _packageNameForId = null;
+        });
+      }
+      return;
+    }
+    if (_packageNameForId == id && _packageName != null) {
+      return;
+    }
+    try {
+      final row = await Supabase.instance.client
+          .from('subscription_packages')
+          .select('name,name_ar,key')
+          .eq('id', id)
+          .maybeSingle();
+      final isAr = langCode.toLowerCase().startsWith('ar');
+      final name = row == null
+          ? null
+          : (isAr ? (row['name_ar']?.toString() ?? '') : (row['name']?.toString() ?? ''))
+              .trim();
+      final fallbackKey = row?['key']?.toString().trim();
+      if (!mounted) return;
+      setState(() {
+        _packageNameForId = id;
+        _packageName = (name != null && name.isNotEmpty) ? name : (fallbackKey?.isNotEmpty == true ? fallbackKey : null);
+      });
+    } catch (_) {
+      // Ignore and fall back to profile.plan.
+    }
+  }
+
   Stream<Set<String>> _watchMyPendingKinds() {
     final client = Supabase.instance.client;
     final uid = client.auth.currentUser?.id;
@@ -60,8 +99,10 @@ class _SettingsPageState extends State<SettingsPage> {
       stream: _profileRepository.watchProfile(),
       builder: (context, snapshot) {
         final profile = snapshot.data;
+        _loadPackageName(profile?.subscriptionPackageId, lang);
         final displayName = profile?.name ?? 'settings_royal_member'.tr();
-        final displayPlan = (profile?.plan ?? '').trim().isEmpty ? 'settings_premium_plan'.tr() : (profile?.plan ?? '');
+        final planKey = (profile?.plan ?? '').trim();
+        final displayPlan = (_packageName ?? planKey).isNotEmpty ? (_packageName ?? planKey) : 'settings_premium_plan'.tr();
         final hasActiveSub = hasActiveCoachContentAccess(profile);
         return RoyalTabScaffold(
       child: Column(

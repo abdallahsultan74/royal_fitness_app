@@ -258,7 +258,9 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
           content: Text(
             widget.kind == SubscriptionRequestKind.activate
                 ? 'subscription_activation_sent'.tr()
-                : 'subscription_renewal_sent'.tr(),
+                : (widget.kind == SubscriptionRequestKind.renew
+                    ? 'subscription_renewal_sent'.tr()
+                    : 'subscription_cancel_sent'.tr()),
           ),
         ),
       );
@@ -333,6 +335,25 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
               ),
               const SizedBox(height: 24),
             ] else ...[
+              if (widget.kind == SubscriptionRequestKind.cancel) ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.glassBorder),
+                    color: const Color.fromRGBO(255, 70, 70, 0.06),
+                  ),
+                  child: Text(
+                    'subscription_cancel_warning'.tr(),
+                    style: const TextStyle(
+                      color: AppColors.textCream,
+                      fontSize: 13,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ] else ...[
               _cardRow(
                 icon: Icons.workspace_premium_outlined,
                 label: 'subscription_package_label'.tr(),
@@ -360,6 +381,7 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
                   args: ['${_selectedVariant?.durationDays ?? widget.durationDays}'],
                 ),
               ),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: 14),
                 Text(
