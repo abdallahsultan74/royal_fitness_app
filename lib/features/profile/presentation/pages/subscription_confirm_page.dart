@@ -6,7 +6,7 @@ import '../../../../core/common_widgets/royal_tab_scaffold.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../notifications/data/notifications_repository.dart';
 
-enum SubscriptionRequestKind { activate, renew }
+enum SubscriptionRequestKind { activate, renew, cancel }
 
 class CoachRecipient {
   const CoachRecipient({
@@ -196,7 +196,9 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
   }
 
   String _kindKey() {
-    return widget.kind == SubscriptionRequestKind.activate ? 'activate' : 'renew';
+    if (widget.kind == SubscriptionRequestKind.renew) return 'renew';
+    if (widget.kind == SubscriptionRequestKind.cancel) return 'cancel';
+    return 'activate';
   }
 
   Future<void> _submit() async {
@@ -225,19 +227,26 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
       }
 
       final v = _selectedVariant;
-      final pkg = v == null ? null : _packages.where((p) => p.id == v.packageId).cast<_SubscriptionPackage?>().firstWhere(
-            (e) => e != null,
-            orElse: () => null,
-          );
+      final pkg = v == null
+          ? null
+          : _packages.where((p) => p.id == v.packageId).cast<_SubscriptionPackage?>().firstWhere(
+                (e) => e != null,
+                orElse: () => null,
+              );
 
       await _client.from('subscription_requests').insert(<String, dynamic>{
         'user_id': user.id,
         // Backward compatibility: keep requested_plan/duration_days filled.
-        'requested_plan': (pkg?.key ?? widget.planKey).toLowerCase(),
+        'requested_plan': (widget.kind == SubscriptionRequestKind.cancel
+                ? (widget.planKey)
+                : (pkg?.key ?? widget.planKey))
+            .toLowerCase(),
         'request_kind': kind,
-        'duration_days': v?.durationDays ?? widget.durationDays,
-        if (pkg != null) 'package_id': pkg.id,
-        if (v != null) 'variant_id': v.id,
+        'duration_days': widget.kind == SubscriptionRequestKind.cancel
+            ? (widget.durationDays)
+            : (v?.durationDays ?? widget.durationDays),
+        if (widget.kind != SubscriptionRequestKind.cancel && pkg != null) 'package_id': pkg.id,
+        if (widget.kind != SubscriptionRequestKind.cancel && v != null) 'variant_id': v.id,
         if (_selectedCoachId != null) 'preferred_coach_id': _selectedCoachId,
         'note': 'Requested from mobile (confirm screen)',
         'status': 'pending',
@@ -269,7 +278,9 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
 
     final title = widget.kind == SubscriptionRequestKind.activate
         ? 'subscription_confirm_activate_title'.tr()
-        : 'subscription_confirm_renew_title'.tr();
+        : (widget.kind == SubscriptionRequestKind.renew
+            ? 'subscription_confirm_renew_title'.tr()
+            : 'subscription_confirm_cancel_title'.tr());
 
     final selectedPackageName = () {
       final v = _selectedVariant;
@@ -326,7 +337,9 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
                 icon: Icons.workspace_premium_outlined,
                 label: 'subscription_package_label'.tr(),
                 value: selectedPackageName,
-                onTap: _packages.isEmpty ? null : _openPackagePicker,
+                onTap: (widget.kind == SubscriptionRequestKind.cancel || _packages.isEmpty)
+                    ? null
+                    : _openPackagePicker,
                 trailing: _packages.isEmpty
                     ? null
                     : const Icon(Icons.expand_more, color: AppColors.creamDim, size: 18),
@@ -367,7 +380,9 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
                   child: Text(
                     _submitting
                         ? 'subscription_confirm_sending'.tr()
-                        : 'subscription_confirm_cta'.tr(),
+                        : (widget.kind == SubscriptionRequestKind.cancel
+                            ? 'subscription_confirm_cancel_cta'.tr()
+                            : 'subscription_confirm_cta'.tr()),
                   ),
                 ),
               ),

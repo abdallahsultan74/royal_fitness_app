@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/common_widgets/royal_tab_scaffold.dart';
+import '../../../../core/entitlements/coach_content_entitlements.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/ui/royal_feedback.dart';
 import '../../../auth/data/auth_repository.dart';
@@ -31,6 +32,27 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _notifications = false;
   bool _voiceCoach = true;
 
+  Stream<Set<String>> _watchMyPendingKinds() {
+    final client = Supabase.instance.client;
+    final uid = client.auth.currentUser?.id;
+    if (uid == null) return const Stream<Set<String>>.empty();
+    return client
+        .from('subscription_requests')
+        .stream(primaryKey: <String>['id'])
+        .eq('user_id', uid)
+        .map((rows) {
+      final pending = <String>{};
+      for (final raw in rows) {
+        final m = Map<String, dynamic>.from(raw);
+        final status = (m['status'] ?? '').toString().toLowerCase();
+        if (status != 'pending') continue;
+        final k = (m['request_kind'] ?? '').toString().toLowerCase();
+        if (k.isNotEmpty) pending.add(k);
+      }
+      return pending;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final lang = context.locale.languageCode;
@@ -39,7 +61,8 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context, snapshot) {
         final profile = snapshot.data;
         final displayName = profile?.name ?? 'settings_royal_member'.tr();
-        final displayPlan = profile?.plan ?? 'settings_premium_plan'.tr();
+        final displayPlan = (profile?.plan ?? '').trim().isEmpty ? 'settings_premium_plan'.tr() : (profile?.plan ?? '');
+        final hasActiveSub = hasActiveCoachContentAccess(profile);
         return RoyalTabScaffold(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -274,32 +297,73 @@ class _SettingsPageState extends State<SettingsPage> {
               );
             },
           ),
-          _menuTile(
-            icon: Icons.workspace_premium_outlined,
-            titleKey: 'settings_request_plan_activation',
-            valueText: 'Pro',
-            onTap: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SubscriptionConfirmPage(
-                    kind: SubscriptionRequestKind.activate,
+          StreamBuilder<Set<String>>(
+            stream: _watchMyPendingKinds(),
+            builder: (context, pendingSnap) {
+              final pending = pendingSnap.data ?? const <String>{};
+              final pendingActivate = pending.contains('activate');
+              final pendingRenew = pending.contains('renew');
+              final pendingCancel = pending.contains('cancel');
+
+              final tiles = <Widget>[];
+              if (!hasActiveSub) {
+                tiles.add(
+                  _menuTile(
+                    icon: Icons.workspace_premium_outlined,
+                    titleKey: 'settings_request_plan_activation',
+                    valueText: pendingActivate ? 'subscription_confirm_sending'.tr() : displayPlan,
+                    onTap: pendingActivate
+                        ? null
+                        : () {
+                            Navigator.of(context).push<void>(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const SubscriptionConfirmPage(
+                                  kind: SubscriptionRequestKind.activate,
+                                ),
+                              ),
+                            );
+                          },
                   ),
-                ),
-              );
-            },
-          ),
-          _menuTile(
-            icon: Icons.autorenew,
-            titleKey: 'settings_request_renewal',
-            valueText: 'Pro',
-            onTap: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (_) => const SubscriptionConfirmPage(
-                    kind: SubscriptionRequestKind.renew,
+                );
+              } else {
+                tiles.add(
+                  _menuTile(
+                    icon: Icons.autorenew,
+                    titleKey: 'settings_request_renewal',
+                    valueText: pendingRenew ? 'subscription_confirm_sending'.tr() : displayPlan,
+                    onTap: pendingRenew
+                        ? null
+                        : () {
+                            Navigator.of(context).push<void>(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const SubscriptionConfirmPage(
+                                  kind: SubscriptionRequestKind.renew,
+                                ),
+                              ),
+                            );
+                          },
                   ),
-                ),
-              );
+                );
+                tiles.add(
+                  _menuTile(
+                    icon: Icons.cancel_outlined,
+                    titleKey: 'settings_request_cancel',
+                    valueText: pendingCancel ? 'subscription_confirm_sending'.tr() : '',
+                    onTap: pendingCancel
+                        ? null
+                        : () {
+                            Navigator.of(context).push<void>(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const SubscriptionConfirmPage(
+                                  kind: SubscriptionRequestKind.cancel,
+                                ),
+                              ),
+                            );
+                          },
+                  ),
+                );
+              }
+              return Column(children: tiles);
             },
           ),
           _menuTile(
