@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/common_widgets/royal_tab_scaffold.dart';
@@ -29,6 +30,43 @@ class ChallengesPage extends StatefulWidget {
 class _ChallengesPageState extends State<ChallengesPage> {
   final ProgressRepository _progressRepository = ProgressRepository();
   final MyPlanRepository _planRepository = MyPlanRepository();
+  RealtimeChannel? _planAssignmentsChannel;
+
+  @override
+  void initState() {
+    super.initState();
+    _subscribePlanAssignments();
+  }
+
+  void _subscribePlanAssignments() {
+    final uid = Supabase.instance.client.auth.currentUser?.id;
+    if (uid == null) return;
+    _planAssignmentsChannel = Supabase.instance.client
+        .channel('challenges-plan-assignments-$uid')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'plan_assignments',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: uid,
+          ),
+          callback: (_) {
+            if (mounted) setState(() {});
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    final ch = _planAssignmentsChannel;
+    if (ch != null) {
+      Supabase.instance.client.removeChannel(ch);
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

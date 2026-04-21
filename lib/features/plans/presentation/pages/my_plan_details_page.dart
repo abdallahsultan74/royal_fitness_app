@@ -1,5 +1,6 @@
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/common_widgets/royal_tab_scaffold.dart';
@@ -9,15 +10,86 @@ import '../../../home/presentation/pages/plan_slot_detail_page.dart';
 import '../../data/home_plan_json_slots.dart';
 import '../../data/my_plan_repository.dart';
 
-class MyPlanDetailsPage extends StatelessWidget {
+class MyPlanDetailsPage extends StatefulWidget {
   const MyPlanDetailsPage({super.key, required this.plan});
 
   final MyActivePlan plan;
 
   @override
+  State<MyPlanDetailsPage> createState() => _MyPlanDetailsPageState();
+}
+
+class _MyPlanDetailsPageState extends State<MyPlanDetailsPage> {
+  final MyPlanRepository _repo = MyPlanRepository();
+  RealtimeChannel? _planAssignmentsChannel;
+
+  bool _loading = true;
+  String? _error;
+  MyActivePlan? _plan;
+  List<HomeTodayPlanSlot> _slots = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _plan = widget.plan;
+    _slots = homePlanSlotsForUi(widget.plan);
+    _subscribePlanAssignments();
+    _refresh();
+  }
+
+  void _subscribePlanAssignments() {
+    final uid = Supabase.instance.client.auth.currentUser?.id;
+    if (uid == null) return;
+    _planAssignmentsChannel = Supabase.instance.client
+        .channel('my-plan-details-assignments-$uid')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'plan_assignments',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: uid,
+          ),
+          callback: (_) => _refresh(),
+        )
+        .subscribe();
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final p = await _repo.fetchMyActivePlan();
+      if (!mounted) return;
+      setState(() {
+        _plan = p ?? _plan;
+        _slots = homePlanSlotsForUi(p ?? _plan);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    final ch = _planAssignmentsChannel;
+    if (ch != null) {
+      Supabase.instance.client.removeChannel(ch);
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final lang = context.locale.languageCode;
-    final slots = homePlanSlotsForUi(plan);
+    final plan = _plan;
+    final slots = _slots;
 
     return Scaffold(
       appBar: AppBar(
@@ -29,43 +101,77 @@ class MyPlanDetailsPage extends StatelessWidget {
           child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            RoyalGlassPanel(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    plan.title,
-                    style: const TextStyle(
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.only(top: 22),
+                child: Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
                       color: AppColors.accentGold,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  if ((plan.description ?? '').trim().isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                ),
+              )
+            else if (_error != null)
+              RoyalGlassPanel(
+                padding: const EdgeInsets.all(14),
+                child: Text(
+                  _error!,
+                  style: const TextStyle(
+                    color: Color(0xFFFF6B6B),
+                    fontSize: 12,
+                  ),
+                ),
+              )
+            else if (plan == null)
+              RoyalGlassPanel(
+                padding: const EdgeInsets.all(14),
+                child: Text(
+                  '—',
+                  style: const TextStyle(color: AppColors.creamDim, fontSize: 12),
+                ),
+              )
+            else
+              RoyalGlassPanel(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                     Text(
-                      plan.description!.trim(),
+                      plan.title,
                       style: const TextStyle(
-                        color: AppColors.creamDim,
-                        fontSize: 12,
-                        height: 1.35,
+                        color: AppColors.accentGold,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 4,
-                    children: [
-                      _meta(Icons.calendar_month, '${plan.durationWeeks} ${'weeks'.tr()}'),
-                      _meta(Icons.fitness_center, plan.level),
-                      if ((plan.status).trim().isNotEmpty) _meta(Icons.verified, plan.status),
+                    if ((plan.description ?? '').trim().isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        plan.description!.trim(),
+                        style: const TextStyle(
+                          color: AppColors.creamDim,
+                          fontSize: 12,
+                          height: 1.35,
+                        ),
+                      ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 4,
+                      children: [
+                        _meta(Icons.calendar_month, '${plan.durationWeeks} ${'weeks'.tr()}'),
+                        _meta(Icons.fitness_center, plan.level),
+                        if ((plan.status).trim().isNotEmpty) _meta(Icons.verified, plan.status),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
             const SizedBox(height: 14),
             Text(
               'home_todays_plan'.tr(),
@@ -96,7 +202,7 @@ class MyPlanDetailsPage extends StatelessWidget {
                         MaterialPageRoute<void>(
                           builder: (_) => PlanSlotDetailPage(
                             slot: slot,
-                            planTitle: plan.title,
+                            planTitle: plan?.title,
                           ),
                         ),
                       );
