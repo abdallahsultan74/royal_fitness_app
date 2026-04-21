@@ -258,6 +258,7 @@
   "subscription_renewal_sent": "تم إرسال طلب التجديد للطاقم.",
   "subscription_cancel_sent": "تم إرسال طلب الإلغاء للطاقم.",
   "subscription_cancel_warning": "سيتم إرسال طلب إلغاء الاشتراك. بعد موافقة الطاقم سيتم إيقاف الاشتراك وإخفاء المميزات والخطط المدفوعة.",
+  "subscription_choose_package_required": "من فضلك اختر باقة أولاً.",
   "onboarding_logo_royal": "ROYAL",
   "onboarding_logo_fitness": "FITNESS",
   "onboarding_tagline": "تدرّب كالملوك",

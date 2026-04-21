@@ -211,6 +211,13 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
     });
     try {
       final kind = _kindKey();
+      if (widget.kind != SubscriptionRequestKind.cancel && _selectedVariant == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('subscription_choose_package_required'.tr())),
+        );
+        return;
+      }
       final pending = await _client
           .from('subscription_requests')
           .select('id')
