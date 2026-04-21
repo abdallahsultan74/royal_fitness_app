@@ -242,6 +242,8 @@
   "subscription_coach_label": "Coach",
   "subscription_duration_label": "Duration",
   "subscription_duration_days": "{} days",
+  "subscription_package_label": "Package",
+  "subscription_choose_package_title": "Choose a package",
   "subscription_choose_coach_any": "Any coach",
   "subscription_choose_coach_title": "Choose coach",
   "subscription_search_coach_hint": "Search coach name or email",

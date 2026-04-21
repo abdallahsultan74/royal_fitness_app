@@ -74,6 +74,8 @@ class ProfileRepository {
         plan: data['plan']?.toString() ?? 'basic',
         planExpiresAt:
             DateTime.tryParse(data['plan_expires_at']?.toString() ?? ''),
+        subscriptionPackageId: data['subscription_package_id']?.toString(),
+        subscriptionVariantId: data['subscription_variant_id']?.toString(),
         featureFlags: featureFlags,
         photoUrl: data['photo_url']?.toString(),
         whatsappPhone: data['whatsapp_phone']?.toString(),

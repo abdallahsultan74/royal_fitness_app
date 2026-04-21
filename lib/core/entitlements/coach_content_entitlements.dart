@@ -9,7 +9,8 @@ bool isCoachContentPlanTier(String plan) {
 /// Whether the user should see coach-assigned training plans / gated challenge enrollment.
 bool hasActiveCoachContentAccess(UserProfile? profile) {
   if (profile == null) return false;
-  if (!isCoachContentPlanTier(profile.plan)) return false;
+  final hasPackage = (profile.subscriptionPackageId ?? '').trim().isNotEmpty;
+  if (!hasPackage && !isCoachContentPlanTier(profile.plan)) return false;
   final exp = profile.planExpiresAt;
   if (exp != null && !exp.toUtc().isAfter(DateTime.now().toUtc())) {
     return false;

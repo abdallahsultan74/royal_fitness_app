@@ -41,6 +41,9 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
   bool _submitting = false;
   String? _error;
 
+  List<_SubscriptionPackage> _packages = const [];
+  _SubscriptionVariant? _selectedVariant;
+
   int? _priceCents;
   String _currency = 'EGP';
   String _coachName = '—';
@@ -79,20 +82,56 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
           .toList(growable: false);
       _coaches = coaches;
 
-      // 1) Price from subscription_plan_prices (active).
-      final priceResp = await _client
-          .from('subscription_plan_prices')
-          .select('price_cents,currency')
-          .eq('active', true)
-          .eq('plan_key', widget.planKey)
-          .eq('duration_days', widget.durationDays)
-          .order('updated_at', ascending: false)
-          .limit(1);
-      if (priceResp.isNotEmpty) {
-        final m = Map<String, dynamic>.from(priceResp.first as Map);
-        _priceCents = (m['price_cents'] as num?)?.toInt();
-        _currency = m['currency']?.toString() ?? _currency;
+      // 1) Packages + variants (new flow; still backward-compatible).
+      final packageRows = await _client.rpc('api_list_subscription_packages');
+      final rows = (packageRows as List?)?.cast<dynamic>() ?? const [];
+      final byPkg = <String, _SubscriptionPackage>{};
+      for (final raw in rows) {
+        final m = Map<String, dynamic>.from(raw as Map);
+        final pkgId = (m['package_id'] ?? '').toString();
+        if (pkgId.trim().isEmpty) continue;
+        final pkgKey = (m['package_key'] ?? '').toString();
+        final pkg = byPkg[pkgId] ??
+            _SubscriptionPackage(
+              id: pkgId,
+              key: pkgKey,
+              name: (m['name'] ?? pkgKey).toString(),
+              nameAr: (m['name_ar'] ?? '').toString(),
+              description: (m['description'] ?? '').toString(),
+              descriptionAr: (m['description_ar'] ?? '').toString(),
+              active: (m['package_active'] as bool?) ?? true,
+              variants: const [],
+            );
+        final vId = (m['variant_id'] ?? '').toString();
+        final variants = [...pkg.variants];
+        if (vId.trim().isNotEmpty) {
+          variants.add(
+            _SubscriptionVariant(
+              id: vId,
+              packageId: pkgId,
+              durationDays: (m['duration_days'] as num?)?.toInt() ?? 30,
+              priceCents: (m['price_cents'] as num?)?.toInt() ?? 0,
+              currency: (m['currency'] ?? 'EGP').toString(),
+              active: (m['variant_active'] as bool?) ?? true,
+            ),
+          );
+        }
+        byPkg[pkgId] = pkg.copyWith(variants: variants);
       }
+      final packages = byPkg.values
+          .map((p) => p.copyWith(
+                variants: [...p.variants]..sort((a, b) => a.durationDays.compareTo(b.durationDays)),
+              ))
+          .toList(growable: false)
+        ..sort((a, b) => a.key.compareTo(b.key));
+      _packages = packages;
+
+      _selectedVariant ??= _pickDefaultVariant(
+        packages: packages,
+        preferKey: widget.planKey,
+        preferDurationDays: widget.durationDays,
+      );
+      _applyVariantToPrice();
 
       // 2) Coach from latest plan_assignments for this user (assigned_by -> profiles.name).
       final assignments = await _client
@@ -126,6 +165,36 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
     }
   }
 
+  _SubscriptionVariant? _pickDefaultVariant({
+    required List<_SubscriptionPackage> packages,
+    required String preferKey,
+    required int preferDurationDays,
+  }) {
+    if (packages.isEmpty) return null;
+    final key = preferKey.toLowerCase().trim();
+    final preferred = packages.where((p) => p.key.toLowerCase().trim() == key).toList(growable: false);
+    final pool = preferred.isNotEmpty ? preferred : packages;
+    for (final p in pool) {
+      final match = p.variants.where((v) => v.durationDays == preferDurationDays).toList(growable: false);
+      if (match.isNotEmpty) return match.first;
+    }
+    for (final p in pool) {
+      if (p.variants.isNotEmpty) return p.variants.first;
+    }
+    return null;
+  }
+
+  void _applyVariantToPrice() {
+    final v = _selectedVariant;
+    if (v == null) {
+      _priceCents = null;
+      _currency = 'EGP';
+      return;
+    }
+    _priceCents = v.priceCents;
+    _currency = v.currency;
+  }
+
   String _kindKey() {
     return widget.kind == SubscriptionRequestKind.activate ? 'activate' : 'renew';
   }
@@ -155,11 +224,20 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
         return;
       }
 
+      final v = _selectedVariant;
+      final pkg = v == null ? null : _packages.where((p) => p.id == v.packageId).cast<_SubscriptionPackage?>().firstWhere(
+            (e) => e != null,
+            orElse: () => null,
+          );
+
       await _client.from('subscription_requests').insert(<String, dynamic>{
         'user_id': user.id,
-        'requested_plan': widget.planKey,
+        // Backward compatibility: keep requested_plan/duration_days filled.
+        'requested_plan': (pkg?.key ?? widget.planKey).toLowerCase(),
         'request_kind': kind,
-        'duration_days': widget.durationDays,
+        'duration_days': v?.durationDays ?? widget.durationDays,
+        if (pkg != null) 'package_id': pkg.id,
+        if (v != null) 'variant_id': v.id,
         if (_selectedCoachId != null) 'preferred_coach_id': _selectedCoachId,
         'note': 'Requested from mobile (confirm screen)',
         'status': 'pending',
@@ -192,6 +270,19 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
     final title = widget.kind == SubscriptionRequestKind.activate
         ? 'subscription_confirm_activate_title'.tr()
         : 'subscription_confirm_renew_title'.tr();
+
+    final selectedPackageName = () {
+      final v = _selectedVariant;
+      if (v == null) return '—';
+      final p = _packages.where((e) => e.id == v.packageId).cast<_SubscriptionPackage?>().firstWhere(
+            (e) => e != null,
+            orElse: () => null,
+          );
+      if (p == null) return '—';
+      final isAr = context.locale.languageCode.toLowerCase().startsWith('ar');
+      final n = isAr ? (p.nameAr.trim().isEmpty ? p.name : p.nameAr) : p.name;
+      return n.trim().isEmpty ? p.key : n;
+    }();
 
     return RoyalTabScaffold(
       child: Padding(
@@ -232,6 +323,16 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
               const SizedBox(height: 24),
             ] else ...[
               _cardRow(
+                icon: Icons.workspace_premium_outlined,
+                label: 'subscription_package_label'.tr(),
+                value: selectedPackageName,
+                onTap: _packages.isEmpty ? null : _openPackagePicker,
+                trailing: _packages.isEmpty
+                    ? null
+                    : const Icon(Icons.expand_more, color: AppColors.creamDim, size: 18),
+              ),
+              const SizedBox(height: 10),
+              _cardRow(
                 icon: Icons.payments_outlined,
                 label: 'subscription_price_label'.tr(),
                 value: priceText,
@@ -242,7 +343,9 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
               _cardRow(
                 icon: Icons.calendar_today_outlined,
                 label: 'subscription_duration_label'.tr(),
-                value: 'subscription_duration_days'.tr(args: ['${widget.durationDays}']),
+                value: 'subscription_duration_days'.tr(
+                  args: ['${_selectedVariant?.durationDays ?? widget.durationDays}'],
+                ),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 14),
@@ -273,6 +376,102 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _openPackagePicker() async {
+    final chosen = await showModalBottomSheet<_SubscriptionVariant?>(
+      context: context,
+      backgroundColor: AppColors.emeraldDark,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) {
+        final isAr = context.locale.languageCode.toLowerCase().startsWith('ar');
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'subscription_choose_package_title'.tr(),
+                  style: const TextStyle(
+                    color: AppColors.textCream,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 520),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: _packages.length,
+                      separatorBuilder: (_, __) => const Divider(color: AppColors.glassBorder),
+                      itemBuilder: (ctx, i) {
+                        final p = _packages[i];
+                        final title = isAr ? (p.nameAr.trim().isEmpty ? p.name : p.nameAr) : p.name;
+                        return ExpansionTile(
+                          collapsedIconColor: AppColors.creamDim,
+                          iconColor: AppColors.creamDim,
+                          textColor: AppColors.textCream,
+                          collapsedTextColor: AppColors.textCream,
+                          title: Text(
+                            title.trim().isEmpty ? p.key : title,
+                            style: const TextStyle(
+                              color: AppColors.textCream,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          subtitle: p.description.trim().isEmpty && p.descriptionAr.trim().isEmpty
+                              ? null
+                              : Text(
+                                  isAr
+                                      ? (p.descriptionAr.trim().isEmpty ? p.description : p.descriptionAr)
+                                      : p.description,
+                                  style: const TextStyle(color: AppColors.creamDim),
+                                ),
+                          children: p.variants.map((v) {
+                            final selected = _selectedVariant?.id == v.id;
+                            final price = '${(v.priceCents / 100).toStringAsFixed(0)} ${v.currency}';
+                            final dur = 'subscription_duration_days'.tr(args: ['${v.durationDays}']);
+                            return ListTile(
+                              onTap: () => Navigator.of(ctx).pop<_SubscriptionVariant?>(v),
+                              title: Text(
+                                dur,
+                                style: const TextStyle(
+                                  color: AppColors.textCream,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              subtitle: Text(
+                                price,
+                                style: const TextStyle(color: AppColors.creamDim),
+                              ),
+                              trailing: selected
+                                  ? const Icon(Icons.check, color: AppColors.accentGold)
+                                  : null,
+                            );
+                          }).toList(growable: false),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (!mounted) return;
+    if (chosen == null) return;
+    setState(() {
+      _selectedVariant = chosen;
+      _applyVariantToPrice();
+    });
   }
 
   String _selectedCoachLabel(BuildContext context) {
@@ -504,5 +703,58 @@ class _SubscriptionConfirmPageState extends State<SubscriptionConfirmPage> {
       child: child,
     );
   }
+}
+
+class _SubscriptionPackage {
+  const _SubscriptionPackage({
+    required this.id,
+    required this.key,
+    required this.name,
+    required this.nameAr,
+    required this.description,
+    required this.descriptionAr,
+    required this.active,
+    required this.variants,
+  });
+
+  final String id;
+  final String key;
+  final String name;
+  final String nameAr;
+  final String description;
+  final String descriptionAr;
+  final bool active;
+  final List<_SubscriptionVariant> variants;
+
+  _SubscriptionPackage copyWith({List<_SubscriptionVariant>? variants}) {
+    return _SubscriptionPackage(
+      id: id,
+      key: key,
+      name: name,
+      nameAr: nameAr,
+      description: description,
+      descriptionAr: descriptionAr,
+      active: active,
+      variants: variants ?? this.variants,
+    );
+  }
+}
+
+class _SubscriptionVariant {
+  const _SubscriptionVariant({
+    required this.id,
+    required this.packageId,
+    required this.durationDays,
+    required this.priceCents,
+    required this.currency,
+    required this.active,
+  });
+
+  final String id;
+  final String packageId;
+  final int durationDays;
+  final int priceCents;
+  final String currency;
+  final bool active;
 }
 

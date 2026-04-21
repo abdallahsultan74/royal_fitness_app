@@ -242,6 +242,8 @@
   "subscription_coach_label": "المدرب",
   "subscription_duration_label": "المدة",
   "subscription_duration_days": "{} يوم",
+  "subscription_package_label": "الباقة",
+  "subscription_choose_package_title": "اختر الباقة",
   "subscription_choose_coach_any": "أي مدرب",
   "subscription_choose_coach_title": "اختر المدرب",
   "subscription_search_coach_hint": "ابحث باسم المدرب أو البريد",
