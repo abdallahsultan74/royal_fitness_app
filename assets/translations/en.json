@@ -310,5 +310,6 @@
   "progress_session_completed": "Completed",
   "progress_session_incomplete": "Incomplete",
   "progress_plan_for_day": "Plan for this day",
-  "progress_workout_log_for_day": "Workout log"
+  "progress_workout_log_for_day": "Workout log",
+  "my_plans_title": "MY PLANS"
 }

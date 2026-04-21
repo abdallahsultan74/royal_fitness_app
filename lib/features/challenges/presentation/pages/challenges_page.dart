@@ -31,11 +31,13 @@ class _ChallengesPageState extends State<ChallengesPage> {
   final ProgressRepository _progressRepository = ProgressRepository();
   final MyPlanRepository _planRepository = MyPlanRepository();
   RealtimeChannel? _planAssignmentsChannel;
+  late Future<List<MyActivePlan>> _packagePlansFuture;
 
   @override
   void initState() {
     super.initState();
     _subscribePlanAssignments();
+    _packagePlansFuture = _planRepository.fetchMyPackagePlans();
   }
 
   void _subscribePlanAssignments() {
@@ -53,7 +55,11 @@ class _ChallengesPageState extends State<ChallengesPage> {
             value: uid,
           ),
           callback: (_) {
-            if (mounted) setState(() {});
+            if (mounted) {
+              setState(() {
+                _packagePlansFuture = _planRepository.fetchMyPackagePlans();
+              });
+            }
           },
         )
         .subscribe();
@@ -181,6 +187,89 @@ class _ChallengesPageState extends State<ChallengesPage> {
                       ),
                     ),
                   ],
+                  FutureBuilder<List<MyActivePlan>>(
+                    future: _packagePlansFuture,
+                    builder: (context, plansSnap) {
+                      final plans = plansSnap.data ?? const <MyActivePlan>[];
+                      if (plans.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'my_plans_title'.tr(),
+                              style: const TextStyle(
+                                color: AppColors.creamDim,
+                                fontSize: 11,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ...plans.map((p) {
+                              final isActive = myPlan?.planId == p.planId;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: RoyalGlassPanel(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(24),
+                                    onTap: () async {
+                                      await RoyalFeedback.tap(context);
+                                      if (isActive) {
+                                        if (!context.mounted) return;
+                                        Navigator.of(context).push<void>(
+                                          MaterialPageRoute<void>(
+                                            builder: (_) => MyPlanDetailsPage(plan: myPlan!),
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      try {
+                                        await _planRepository.switchToPlan(p.planId);
+                                        if (!mounted) return;
+                                        setState(() {
+                                          _packagePlansFuture = _planRepository.fetchMyPackagePlans();
+                                        });
+                                      } catch (_) {}
+                                    },
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                p.title,
+                                                style: TextStyle(
+                                                  color: isActive ? AppColors.accentGold : AppColors.textCream,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                '${p.durationWeeks} ${'weeks'.tr()} · ${p.level}',
+                                                style: const TextStyle(color: AppColors.creamDim, fontSize: 11),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (isActive)
+                                          const Icon(Icons.check, color: AppColors.accentGold, size: 18)
+                                        else
+                                          const Icon(Icons.chevron_right, color: AppColors.creamDim, size: 18),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: ClipRRect(

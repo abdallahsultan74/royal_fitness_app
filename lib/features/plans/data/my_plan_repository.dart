@@ -49,5 +49,29 @@ class MyPlanRepository {
       createdAt: DateTime.tryParse(data['created_at']?.toString() ?? '') ?? DateTime.now(),
     );
   }
+
+  Future<List<MyActivePlan>> fetchMyPackagePlans() async {
+    final rows = await _client.rpc<List<dynamic>>('api_my_package_plans');
+    return rows.map((raw) {
+      final data = Map<String, dynamic>.from(raw as Map);
+      return MyActivePlan(
+        assignmentId: '',
+        planId: (data['plan_id'] ?? '').toString(),
+        title: (data['title'] ?? '').toString(),
+        description: data['description']?.toString(),
+        level: (data['level'] ?? 'beginner').toString(),
+        durationWeeks: (data['duration_weeks'] as num? ?? 4).toInt(),
+        jsonPlan: (data['json_plan'] as Map?)?.cast<String, dynamic>() ?? const <String, dynamic>{},
+        startsAt: null,
+        endsAt: null,
+        status: 'available',
+        createdAt: DateTime.tryParse(data['created_at']?.toString() ?? '') ?? DateTime.now(),
+      );
+    }).toList(growable: false);
+  }
+
+  Future<void> switchToPlan(String planId) async {
+    await _client.rpc('api_my_switch_plan', params: <String, dynamic>{'p_plan_id': planId});
+  }
 }
 

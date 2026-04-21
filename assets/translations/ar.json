@@ -310,5 +310,6 @@
   "progress_session_completed": "مكتمل",
   "progress_session_incomplete": "غير مكتمل",
   "progress_plan_for_day": "تمارين اليوم (الخطة)",
-  "progress_workout_log_for_day": "سجل اليوم"
+  "progress_workout_log_for_day": "سجل اليوم",
+  "my_plans_title": "خططي"
 }
