@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../../../../core/config/build_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/notifications_repository.dart';
 
@@ -297,16 +298,18 @@ class _UserNotificationsPageState extends State<UserNotificationsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final clientDelivery = BuildConfig.clientDelivery;
     final isInbox = _tab == 'inbox';
     return Scaffold(
       appBar: AppBar(
         title: Text('settings_notifications'.tr()),
         actions: [
-          IconButton(
-            onPressed: _compose,
-            icon: const Icon(Icons.edit, color: AppColors.accentGold),
-            tooltip: 'notifications_compose'.tr(),
-          )
+          if (!clientDelivery && BuildConfig.staffMessagingEnabled)
+            IconButton(
+              onPressed: _compose,
+              icon: const Icon(Icons.edit, color: AppColors.accentGold),
+              tooltip: 'notifications_compose'.tr(),
+            ),
         ],
       ),
       body: Column(
@@ -316,10 +319,10 @@ class _UserNotificationsPageState extends State<UserNotificationsPage> {
             child: SegmentedButton<String>(
               segments: [
                 ButtonSegment(value: 'inbox', label: Text('notifications_inbox'.tr())),
-                ButtonSegment(value: 'sent', label: Text('notifications_sent_tab'.tr())),
+                if (!clientDelivery) ButtonSegment(value: 'sent', label: Text('notifications_sent_tab'.tr())),
               ],
               selected: {_tab},
-              onSelectionChanged: (s) => setState(() => _tab = s.first),
+              onSelectionChanged: clientDelivery ? null : (s) => setState(() => _tab = s.first),
             ),
           ),
           Expanded(

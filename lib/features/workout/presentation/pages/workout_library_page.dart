@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/config/build_config.dart';
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/common_widgets/royal_tab_scaffold.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -48,7 +49,9 @@ class _WorkoutLibraryPageState extends State<WorkoutLibraryPage> {
     if (_initialized) return;
     _initialized = true;
     _loadWorkouts();
-    _subscribeExercisesChanges();
+    if (BuildConfig.realtimeEnabled) {
+      _subscribeExercisesChanges();
+    }
   }
 
   @override
@@ -131,10 +134,12 @@ class _WorkoutLibraryPageState extends State<WorkoutLibraryPage> {
       setState(() {
         _workouts = mapped;
         _loading = false;
-        _error ??= 'Supabase API returned no rows, showing local fallback.';
+        _error ??= null;
         _dataMode = 'local:${mapped.length}';
       });
-      _syncExercisesToSupabase(mapped);
+      if (BuildConfig.exerciseSeedEnabled) {
+        _syncExercisesToSupabase(mapped);
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -146,6 +151,7 @@ class _WorkoutLibraryPageState extends State<WorkoutLibraryPage> {
   }
 
   Future<void> _syncExercisesToSupabase(List<LocalExerciseItem> items) async {
+    if (!BuildConfig.exerciseSeedEnabled) return;
     try {
       final client = Supabase.instance.client;
       for (final item in items) {

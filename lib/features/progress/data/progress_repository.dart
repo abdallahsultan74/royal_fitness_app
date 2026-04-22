@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/config/build_config.dart';
 import '../../challenges/domain/challenge_progress.dart';
 import '../../plans/data/home_plan_json_slots.dart';
 import '../domain/weight_log.dart';
@@ -36,21 +37,25 @@ class ProgressRepository {
       controller.add(mapped.reversed.toList(growable: false));
     }
 
-    late final RealtimeChannel channel;
-    channel = _client
-        .channel('weight-logs-$_uid')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'weight_logs',
-          callback: (_) => load(),
-        )
-        .subscribe();
-
     load();
-    controller.onCancel = () {
-      _client.removeChannel(channel);
-    };
+    if (BuildConfig.realtimeEnabled) {
+      late final RealtimeChannel channel;
+      channel = _client
+          .channel('weight-logs-$_uid')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'weight_logs',
+            callback: (_) => load(),
+          )
+          .subscribe();
+
+      controller.onCancel = () {
+        _client.removeChannel(channel);
+      };
+    } else {
+      controller.onCancel = () {};
+    }
     return controller.stream;
   }
 
@@ -202,21 +207,25 @@ class ProgressRepository {
       );
     }
 
-    late final RealtimeChannel channel;
-    channel = _client
-        .channel('active-challenge-$_uid')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'user_challenges',
-          callback: (_) => load(),
-        )
-        .subscribe();
-
     load();
-    controller.onCancel = () {
-      _client.removeChannel(channel);
-    };
+    if (BuildConfig.realtimeEnabled) {
+      late final RealtimeChannel channel;
+      channel = _client
+          .channel('active-challenge-$_uid')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'user_challenges',
+            callback: (_) => load(),
+          )
+          .subscribe();
+
+      controller.onCancel = () {
+        _client.removeChannel(channel);
+      };
+    } else {
+      controller.onCancel = () {};
+    }
     return controller.stream;
   }
 }

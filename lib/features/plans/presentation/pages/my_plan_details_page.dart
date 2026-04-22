@@ -2,6 +2,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/config/build_config.dart';
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/common_widgets/royal_tab_scaffold.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -33,7 +34,9 @@ class _MyPlanDetailsPageState extends State<MyPlanDetailsPage> {
     super.initState();
     _plan = widget.plan;
     _slots = homePlanSlotsForUi(widget.plan);
-    _subscribePlanAssignments();
+    if (BuildConfig.realtimeEnabled) {
+      _subscribePlanAssignments();
+    }
     _refresh();
   }
 

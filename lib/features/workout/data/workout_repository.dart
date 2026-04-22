@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/config/build_config.dart';
 import '../domain/daily_stat.dart';
 import '../domain/workout_session.dart';
 import '../domain/workout_session_item.dart';
@@ -113,21 +114,25 @@ class WorkoutRepository {
       );
     }
 
-    late final RealtimeChannel channel;
-    channel = _client
-        .channel('daily-stats-$_uid')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'daily_stats',
-          callback: (_) => load(),
-        )
-        .subscribe();
-
     load();
-    controller.onCancel = () {
-      _client.removeChannel(channel);
-    };
+    if (BuildConfig.realtimeEnabled) {
+      late final RealtimeChannel channel;
+      channel = _client
+          .channel('daily-stats-$_uid')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'daily_stats',
+            callback: (_) => load(),
+          )
+          .subscribe();
+
+      controller.onCancel = () {
+        _client.removeChannel(channel);
+      };
+    } else {
+      controller.onCancel = () {};
+    }
     return controller.stream;
   }
 
@@ -154,21 +159,25 @@ class WorkoutRepository {
       controller.add(mapped.reversed.toList(growable: false));
     }
 
-    late final RealtimeChannel channel;
-    channel = _client
-        .channel('daily-stats-list-$_uid')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'daily_stats',
-          callback: (_) => load(),
-        )
-        .subscribe();
-
     load();
-    controller.onCancel = () {
-      _client.removeChannel(channel);
-    };
+    if (BuildConfig.realtimeEnabled) {
+      late final RealtimeChannel channel;
+      channel = _client
+          .channel('daily-stats-list-$_uid')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'daily_stats',
+            callback: (_) => load(),
+          )
+          .subscribe();
+
+      controller.onCancel = () {
+        _client.removeChannel(channel);
+      };
+    } else {
+      controller.onCancel = () {};
+    }
     return controller.stream;
   }
 
@@ -199,21 +208,25 @@ class WorkoutRepository {
       );
     }
 
-    late final RealtimeChannel channel;
-    channel = _client
-        .channel('sessions-$_uid')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'workout_sessions',
-          callback: (_) => load(),
-        )
-        .subscribe();
-
     load();
-    controller.onCancel = () {
-      _client.removeChannel(channel);
-    };
+    if (BuildConfig.realtimeEnabled) {
+      late final RealtimeChannel channel;
+      channel = _client
+          .channel('sessions-$_uid')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'workout_sessions',
+            callback: (_) => load(),
+          )
+          .subscribe();
+
+      controller.onCancel = () {
+        _client.removeChannel(channel);
+      };
+    } else {
+      controller.onCancel = () {};
+    }
     return controller.stream;
   }
 

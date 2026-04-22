@@ -125,7 +125,7 @@ These are the standard outputs you should deliver to stakeholders (or upload to 
 Build command:
 
 ```bash
-flutter build appbundle --release --tree-shake-icons --obfuscate --split-debug-info=build/symbols
+flutter build appbundle --release --dart-define=CLIENT_DELIVERY=true --tree-shake-icons --obfuscate --split-debug-info=build/symbols
 ```
 
 Output:
@@ -136,7 +136,7 @@ Output:
 Build command:
 
 ```bash
-flutter build apk --release --split-per-abi --tree-shake-icons --obfuscate --split-debug-info=build/symbols
+flutter build apk --release --dart-define=CLIENT_DELIVERY=true --split-per-abi --tree-shake-icons --obfuscate --split-debug-info=build/symbols
 ```
 
 Outputs:

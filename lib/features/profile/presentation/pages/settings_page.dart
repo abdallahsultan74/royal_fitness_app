@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/config/build_config.dart';
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/common_widgets/royal_tab_scaffold.dart';
 import '../../../../core/entitlements/coach_content_entitlements.dart';
@@ -95,6 +96,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final lang = context.locale.languageCode;
+    final clientDelivery = BuildConfig.clientDelivery;
     return StreamBuilder<UserProfile>(
       stream: _profileRepository.watchProfile(),
       builder: (context, snapshot) {
@@ -291,26 +293,28 @@ class _SettingsPageState extends State<SettingsPage> {
               );
             },
           ),
-          _menuTile(
-            icon: Icons.notifications_none,
-            titleKey: 'settings_notifications',
-            trailing: _goldSwitch(
-              value: _notifications,
-              onChanged: (v) => setState(() => _notifications = v),
+          if (!clientDelivery) ...[
+            _menuTile(
+              icon: Icons.notifications_none,
+              titleKey: 'settings_notifications',
+              trailing: _goldSwitch(
+                value: _notifications,
+                onChanged: (v) => setState(() => _notifications = v),
+              ),
+              showChevron: false,
             ),
-            showChevron: false,
-          ),
-          _menuTile(
-            icon: Icons.inbox_outlined,
-            titleKey: 'notifications_inbox',
-            onTap: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (_) => const UserNotificationsPage(),
-                ),
-              );
-            },
-          ),
+            _menuTile(
+              icon: Icons.inbox_outlined,
+              titleKey: 'notifications_inbox',
+              onTap: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const UserNotificationsPage(),
+                  ),
+                );
+              },
+            ),
+          ],
           _menuTile(
             icon: Icons.language,
             titleKey: 'settings_language',

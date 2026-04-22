@@ -5,6 +5,19 @@ Royal Fitness is a Flutter mobile application with a premium “royal” UI, bil
 This repository is the **mobile app**. The **admin dashboard** lives in a separate project:
 - `../royal_fitness_admin`
 
+## Client-only delivery build
+
+For client handover builds, the mobile app is intended to run as **client-only**:
+- No staff/admin UI
+- No Supabase Realtime subscriptions
+- No seeding/syncing shared catalog data (e.g. `exercises`) from the mobile app
+
+Build with:
+
+```bash
+flutter build apk --release --dart-define=CLIENT_DELIVERY=true
+```
+
 ## Admin dashboard (separate project)
 
 The admin project is a Vite + React app that connects to the same Supabase backend.
@@ -29,7 +42,7 @@ For more details (Supabase migrations, deployment), see:
 - Guided workout sessions (timer + optional TTS/audio)
 - Progress tracking (weight, stats, charts)
 - Challenges and active plan (“My Plan”)
-- Notifications and staff messaging (inbox/sent + realtime)
+- Notifications (inbox/sent; realtime is disabled in client-only delivery builds)
 - Subscription request flow with a confirmation step (price + coach selection)
 - AdMob banner integration (test IDs by default)
 

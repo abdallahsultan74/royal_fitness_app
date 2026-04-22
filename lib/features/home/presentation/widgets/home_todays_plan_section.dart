@@ -4,6 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/config/build_config.dart';
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/entitlements/coach_content_entitlements.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -44,7 +45,9 @@ class _HomeTodaysPlanSectionState extends State<HomeTodaysPlanSection> {
   void initState() {
     super.initState();
     _future = _resolve();
-    _subscribePlanAssignments();
+    if (BuildConfig.realtimeEnabled) {
+      _subscribePlanAssignments();
+    }
   }
 
   void _subscribePlanAssignments() {

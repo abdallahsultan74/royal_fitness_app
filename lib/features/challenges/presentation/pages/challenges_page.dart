@@ -5,6 +5,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/config/build_config.dart';
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/common_widgets/royal_tab_scaffold.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -36,7 +37,9 @@ class _ChallengesPageState extends State<ChallengesPage> {
   @override
   void initState() {
     super.initState();
-    _subscribePlanAssignments();
+    if (BuildConfig.realtimeEnabled) {
+      _subscribePlanAssignments();
+    }
     _packagePlansFuture = _planRepository.fetchMyPackagePlans();
   }
 

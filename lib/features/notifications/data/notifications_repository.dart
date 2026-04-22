@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/config/build_config.dart';
+
 class UserNotificationItem {
   const UserNotificationItem({
     required this.id,
@@ -43,19 +45,23 @@ class NotificationsRepository {
       controller.add(_map(rows));
     }
 
-    late final RealtimeChannel channel;
-    channel = _client
-        .channel('user-notifications-$_uid')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'user_notifications',
-          callback: (_) => load(),
-        )
-        .subscribe();
-
     load();
-    controller.onCancel = () => _client.removeChannel(channel);
+    if (BuildConfig.realtimeEnabled) {
+      late final RealtimeChannel channel;
+      channel = _client
+          .channel('user-notifications-$_uid')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'user_notifications',
+            callback: (_) => load(),
+          )
+          .subscribe();
+
+      controller.onCancel = () => _client.removeChannel(channel);
+    } else {
+      controller.onCancel = () {};
+    }
     return controller.stream;
   }
 
@@ -72,19 +78,23 @@ class NotificationsRepository {
       controller.add(_map(rows));
     }
 
-    late final RealtimeChannel channel;
-    channel = _client
-        .channel('user-notifications-sent-$_uid')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.all,
-          schema: 'public',
-          table: 'user_notifications',
-          callback: (_) => load(),
-        )
-        .subscribe();
-
     load();
-    controller.onCancel = () => _client.removeChannel(channel);
+    if (BuildConfig.realtimeEnabled) {
+      late final RealtimeChannel channel;
+      channel = _client
+          .channel('user-notifications-sent-$_uid')
+          .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'user_notifications',
+            callback: (_) => load(),
+          )
+          .subscribe();
+
+      controller.onCancel = () => _client.removeChannel(channel);
+    } else {
+      controller.onCancel = () {};
+    }
     return controller.stream;
   }
 
