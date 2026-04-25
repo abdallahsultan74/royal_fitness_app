@@ -1,4 +1,5 @@
--- Add date of birth to profiles + expose age to the admin summary RPC.
+-- Add date_of_birth to profiles and expose age to the admin summary RPC.
+-- Note: api_admin_user_progress_summary signature changed, so we drop & recreate it.
 
 alter table public.profiles
   add column if not exists date_of_birth date;
@@ -16,8 +17,9 @@ as $$
   end;
 $$;
 
--- Admin/Coach user summary for the admin dashboard: include DOB + age_years.
-create or replace function public.api_admin_user_progress_summary()
+drop function if exists public.api_admin_user_progress_summary();
+
+create function public.api_admin_user_progress_summary()
 returns table (
   user_id uuid,
   email text,
