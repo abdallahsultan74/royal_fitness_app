@@ -28,6 +28,12 @@ class ProfileRepository {
     return (value as num?)?.toDouble() ?? double.tryParse(value.toString());
   }
 
+  DateTime? _toDate(dynamic value) {
+    if (value == null) return null;
+    // PostgREST date may arrive as 'YYYY-MM-DD' or ISO string.
+    return DateTime.tryParse(value.toString());
+  }
+
   Stream<UserProfile> watchProfile() {
     final session = _client.auth.currentUser;
     // #region agent log
@@ -79,6 +85,7 @@ class ProfileRepository {
         featureFlags: featureFlags,
         photoUrl: data['photo_url']?.toString(),
         whatsappPhone: data['whatsapp_phone']?.toString(),
+        dateOfBirth: _toDate(data['date_of_birth']),
         heightCm: _toDouble(data['height_cm']),
         currentWeightKg: _toDouble(data['current_weight_kg']),
         targetWeightKg: _toDouble(data['target_weight_kg']),
@@ -101,6 +108,7 @@ class ProfileRepository {
     Map<String, dynamic>? featureFlags,
     String? photoUrl,
     String? whatsappPhone,
+    DateTime? dateOfBirth,
     double? heightCm,
     double? currentWeightKg,
     double? targetWeightKg,
@@ -120,6 +128,7 @@ class ProfileRepository {
       if (photoUrl != null) 'photo_url': photoUrl,
       // Allow clearing the number by sending empty string -> null
       if (whatsappPhone != null) 'whatsapp_phone': whatsappPhone.trim().isEmpty ? null : whatsappPhone.trim(),
+      if (dateOfBirth != null) 'date_of_birth': dateOfBirth.toIso8601String().substring(0, 10),
       if (heightCm != null) 'height_cm': heightCm,
       if (currentWeightKg != null) 'current_weight_kg': currentWeightKg,
       if (targetWeightKg != null) 'target_weight_kg': targetWeightKg,

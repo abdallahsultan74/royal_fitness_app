@@ -31,6 +31,7 @@ class AuthRepository {
     required String language,
     required double heightCm,
     required double currentWeightKg,
+    DateTime? dateOfBirth,
     double? targetWeightKg,
     String? whatsappPhone,
   }) async {
@@ -51,6 +52,7 @@ class AuthRepository {
       language: language,
       goal: 'general_fitness',
       plan: 'trial',
+      dateOfBirth: dateOfBirth,
       heightCm: heightCm,
       currentWeightKg: currentWeightKg,
       targetWeightKg: targetWeightKg,

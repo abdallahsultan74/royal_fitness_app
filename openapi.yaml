@@ -1,0 +1,1669 @@
+openapi: 3.0.3
+info:
+  title: Royal Fitness - Supabase API
+  version: 1.0.0
+  description: |
+    English documentation for the Supabase APIs used by Royal Fitness.
+
+    Notes:
+    - PostgREST: /rest/v1
+    - Auth (GoTrue): /auth/v1
+    - RPC: /rest/v1/rpc/{function}
+    - Realtime (WebSocket): wss://{projectRef}.supabase.co/realtime/v1 (reference only)
+servers:
+- url: https://thndmcqsjoejqnvfbnto.supabase.co
+  description: Supabase Project
+tags:
+- name: Auth
+- name: Profiles
+- name: Workouts
+- name: Progress
+- name: Challenges
+- name: Plans
+- name: Subscriptions
+- name: Notifications
+- name: RPC
+- name: Admin
+x-tagGroups:
+- name: Mobile App
+  tags:
+  - Auth
+  - Profiles
+  - Workouts
+  - Progress
+  - Challenges
+  - Plans
+  - Subscriptions
+  - Notifications
+  - RPC
+- name: Admin Dashboard
+  tags:
+  - Admin
+security:
+- ApiKeyAuth: []
+  BearerAuth: []
+paths:
+  /auth/v1/signup:
+    post:
+      tags:
+      - Auth
+      summary: POST /auth/v1/signup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              signup:
+                value:
+                  email: user@example.com
+                  password: P@ssw0rd!
+                  data:
+                    name: User
+                    language: ar
+      responses:
+        '200':
+          description: OK
+  /auth/v1/token:
+    post:
+      tags:
+      - Auth
+      summary: POST /auth/v1/token
+      parameters:
+      - in: query
+        name: grant_type
+        required: true
+        schema:
+          type: string
+          enum:
+          - password
+          - refresh_token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              password:
+                value:
+                  email: user@example.com
+                  password: P@ssw0rd!
+      responses:
+        '200':
+          description: OK
+  /auth/v1/otp:
+    post:
+      tags:
+      - Auth
+      summary: POST /auth/v1/otp
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              sendOtp:
+                value:
+                  email: user@example.com
+                  should_create_user: false
+      responses:
+        '200':
+          description: OK
+  /auth/v1/verify:
+    post:
+      tags:
+      - Auth
+      summary: POST /auth/v1/verify
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              verifyEmailOtp:
+                value:
+                  type: email
+                  email: user@example.com
+                  token: '123456'
+      responses:
+        '200':
+          description: OK
+  /auth/v1/recover:
+    post:
+      tags:
+      - Auth
+      summary: POST /auth/v1/recover
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              recover:
+                value:
+                  email: user@example.com
+                  redirect_to: com.royalfitness.royal_fitness://reset-password
+      responses:
+        '200':
+          description: OK
+  /auth/v1/user:
+    put:
+      tags:
+      - Auth
+      summary: PUT /auth/v1/user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              updatePassword:
+                value:
+                  password: NewStrongPass!
+      responses:
+        '200':
+          description: OK
+  /auth/v1/logout:
+    post:
+      tags:
+      - Auth
+      summary: POST /auth/v1/logout
+      responses:
+        '200':
+          description: OK
+  /rest/v1/profiles:
+    get:
+      tags:
+      - Profiles
+      - Admin
+      summary: GET /rest/v1/profiles
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Profiles
+      - Admin
+      summary: Upsert profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+            examples:
+              upsert:
+                value:
+                  id: '{uid}'
+                  name: User
+                  language: ar
+                  updated_at: '2026-01-01T00:00:00Z'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+    patch:
+      tags:
+      - Profiles
+      - Admin
+      summary: PATCH /rest/v1/profiles
+      parameters:
+      - $ref: '#/components/parameters/PreferReturnRepresentation'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/exercises:
+    get:
+      tags:
+      - Workouts
+      summary: GET /rest/v1/exercises
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Workouts
+      summary: POST /rest/v1/exercises
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/workout_sessions:
+    get:
+      tags:
+      - Workouts
+      summary: GET /rest/v1/workout_sessions
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Workouts
+      summary: POST /rest/v1/workout_sessions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+            examples:
+              startSession:
+                value:
+                  user_id: '{uid}'
+                  started_at: '2026-01-01T10:00:00Z'
+                  duration_sec: 0
+                  calories: 0
+                  exercise_count: 5
+                  completed: false
+                  date_key: '2026-01-01'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+    patch:
+      tags:
+      - Workouts
+      summary: PATCH /rest/v1/workout_sessions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+            examples:
+              complete:
+                value:
+                  ended_at: '2026-01-01T10:25:00Z'
+                  duration_sec: 1500
+                  calories: 120
+                  exercise_count: 5
+                  completed: true
+                  date_key: '2026-01-01'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/workout_session_items:
+    get:
+      tags:
+      - Workouts
+      summary: GET /rest/v1/workout_session_items
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Workouts
+      summary: POST /rest/v1/workout_session_items
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/daily_stats:
+    get:
+      tags:
+      - Workouts
+      summary: GET /rest/v1/daily_stats
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Workouts
+      summary: POST /rest/v1/daily_stats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/user_measurements:
+    get:
+      tags:
+      - Progress
+      - Admin
+      summary: GET /rest/v1/user_measurements
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Progress
+      - Admin
+      summary: POST /rest/v1/user_measurements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/training_plans:
+    get:
+      tags:
+      - Plans
+      - Admin
+      summary: GET /rest/v1/training_plans
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Plans
+      - Admin
+      summary: POST /rest/v1/training_plans
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+    patch:
+      tags:
+      - Plans
+      - Admin
+      summary: PATCH /rest/v1/training_plans
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+    delete:
+      tags:
+      - Plans
+      - Admin
+      summary: DELETE /rest/v1/training_plans
+      responses:
+        '204':
+          description: Deleted
+  /rest/v1/weight_logs:
+    get:
+      tags:
+      - Progress
+      summary: GET /rest/v1/weight_logs
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Progress
+      summary: POST /rest/v1/weight_logs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+            examples:
+              logWeight:
+                value:
+                  user_id: '{uid}'
+                  logged_at: '2026-01-01'
+                  weight_kg: 82.5
+                  source: app
+                  updated_at: '2026-01-01T00:00:00Z'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/challenge_templates:
+    get:
+      tags:
+      - Challenges
+      summary: GET /rest/v1/challenge_templates
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Challenges
+      - Admin
+      summary: POST /rest/v1/challenge_templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+    patch:
+      tags:
+      - Challenges
+      - Admin
+      summary: PATCH /rest/v1/challenge_templates
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+    delete:
+      tags:
+      - Challenges
+      - Admin
+      summary: DELETE /rest/v1/challenge_templates
+      responses:
+        '204':
+          description: Deleted
+  /rest/v1/challenge_template_days:
+    get:
+      tags:
+      - Challenges
+      - Admin
+      summary: GET /rest/v1/challenge_template_days
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Challenges
+      - Admin
+      summary: POST /rest/v1/challenge_template_days
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/user_challenges:
+    get:
+      tags:
+      - Challenges
+      - Admin
+      summary: GET /rest/v1/user_challenges
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Challenges
+      - Admin
+      summary: POST /rest/v1/user_challenges
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+    patch:
+      tags:
+      - Challenges
+      summary: PATCH /rest/v1/user_challenges
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+            examples:
+              cancel:
+                value:
+                  status: cancelled
+                  updated_at: '2026-01-01T00:00:00Z'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+    delete:
+      tags:
+      - Challenges
+      - Admin
+      summary: DELETE /rest/v1/user_challenges
+      responses:
+        '204':
+          description: Deleted
+  /rest/v1/user_challenge_days:
+    get:
+      tags:
+      - Challenges
+      summary: GET /rest/v1/user_challenge_days
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Challenges
+      - Admin
+      summary: POST /rest/v1/user_challenge_days
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+    patch:
+      tags:
+      - Challenges
+      - Admin
+      summary: PATCH /rest/v1/user_challenge_days
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+    delete:
+      tags:
+      - Challenges
+      - Admin
+      summary: DELETE /rest/v1/user_challenge_days
+      responses:
+        '204':
+          description: Deleted
+  /rest/v1/plan_assignments:
+    get:
+      tags:
+      - Plans
+      - Admin
+      summary: GET /rest/v1/plan_assignments
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Plans
+      - Admin
+      summary: POST /rest/v1/plan_assignments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+    patch:
+      tags:
+      - Plans
+      - Admin
+      summary: PATCH /rest/v1/plan_assignments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/subscription_packages:
+    get:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: GET /rest/v1/subscription_packages
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: POST /rest/v1/subscription_packages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+    patch:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: PATCH /rest/v1/subscription_packages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/subscription_package_variants:
+    get:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: GET /rest/v1/subscription_package_variants
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: POST /rest/v1/subscription_package_variants
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+    patch:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: PATCH /rest/v1/subscription_package_variants
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/subscription_package_entitlements:
+    get:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: GET /rest/v1/subscription_package_entitlements
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: POST /rest/v1/subscription_package_entitlements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/subscription_package_plans:
+    get:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: GET /rest/v1/subscription_package_plans
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: POST /rest/v1/subscription_package_plans
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/subscription_plan_prices:
+    get:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: GET /rest/v1/subscription_plan_prices
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: POST /rest/v1/subscription_plan_prices
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/subscription_requests:
+    get:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: GET /rest/v1/subscription_requests
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Subscriptions
+      - Admin
+      summary: POST /rest/v1/subscription_requests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/admin_notifications:
+    get:
+      tags:
+      - Admin
+      summary: GET /rest/v1/admin_notifications
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Admin
+      summary: POST /rest/v1/admin_notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: '#/components/schemas/JsonObject'
+              - $ref: '#/components/schemas/JsonArray'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+    patch:
+      tags:
+      - Admin
+      summary: PATCH /rest/v1/admin_notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/user_notifications:
+    get:
+      tags:
+      - Notifications
+      - Admin
+      summary: GET /rest/v1/user_notifications
+      parameters:
+      - $ref: '#/components/parameters/Select'
+      - $ref: '#/components/parameters/Order'
+      - $ref: '#/components/parameters/Limit'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+    post:
+      tags:
+      - Notifications
+      - Admin
+      summary: POST /rest/v1/user_notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '201':
+          $ref: '#/components/responses/JsonAny'
+    patch:
+      tags:
+      - Notifications
+      - Admin
+      summary: PATCH /rest/v1/user_notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+            examples:
+              markRead:
+                value:
+                  read_at: '2026-01-01T00:00:00Z'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /storage/v1/object/{bucket}/{objectPath}:
+    get:
+      tags:
+      - Workouts
+      - Admin
+      summary: GET /storage/v1/object/{bucket}/{objectPath}
+      parameters:
+      - in: path
+        name: bucket
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: objectPath
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: File bytes
+    post:
+      tags:
+      - Workouts
+      - Admin
+      summary: POST /storage/v1/object/{bucket}/{objectPath}
+      parameters:
+      - in: path
+        name: bucket
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: objectPath
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: OK
+    delete:
+      tags:
+      - Workouts
+      - Admin
+      summary: DELETE /storage/v1/object/{bucket}/{objectPath}
+      parameters:
+      - in: path
+        name: bucket
+        required: true
+        schema:
+          type: string
+      - in: path
+        name: objectPath
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: OK
+  /rest/v1/rpc/api_list_exercises:
+    post:
+      tags:
+      - RPC
+      summary: api_list_exercises
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+            examples:
+              params:
+                value:
+                  lang: ar
+                  kind: ''
+                  search_query: ''
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+  /rest/v1/rpc/api_challenge_details:
+    post:
+      tags:
+      - RPC
+      summary: api_challenge_details
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+            examples:
+              params:
+                value:
+                  challenge_id: 00000000-0000-0000-0000-000000000000
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+  /rest/v1/rpc/api_my_active_challenge:
+    post:
+      tags:
+      - RPC
+      summary: api_my_active_challenge
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+  /rest/v1/rpc/start_user_challenge:
+    post:
+      tags:
+      - RPC
+      summary: start_user_challenge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+            examples:
+              params:
+                value:
+                  challenge_slug: beginner-30
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/complete_user_challenge_day:
+    post:
+      tags:
+      - RPC
+      summary: complete_user_challenge_day
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+            examples:
+              params:
+                value:
+                  target_day: 3
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/api_my_active_plan:
+    post:
+      tags:
+      - RPC
+      summary: api_my_active_plan
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+  /rest/v1/rpc/api_my_package_plans:
+    post:
+      tags:
+      - RPC
+      summary: api_my_package_plans
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+  /rest/v1/rpc/api_my_switch_plan:
+    post:
+      tags:
+      - RPC
+      summary: api_my_switch_plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+            examples:
+              params:
+                value:
+                  p_plan_id: 00000000-0000-0000-0000-000000000000
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/api_list_subscription_packages:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: api_list_subscription_packages
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+  /rest/v1/rpc/api_my_cancel_subscription:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: api_my_cancel_subscription
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/list_staff_recipients:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: list_staff_recipients
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+  /rest/v1/rpc/api_admin_dashboard_metrics:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: api_admin_dashboard_metrics
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+            examples:
+              params:
+                value:
+                  p_days: 30
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/api_list_subscription_prices:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: api_list_subscription_prices
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonArray'
+  /rest/v1/rpc/api_admin_user_progress_summary:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: api_admin_user_progress_summary
+      description: Returns admin/coach user summary rows including date_of_birth and computed age_years.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          description: JSON array
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  additionalProperties: true
+                  properties:
+                    user_id: { type: string, format: uuid }
+                    email: { type: string }
+                    name: { type: string }
+                    plan: { type: string }
+                    role: { type: string, nullable: true }
+                    status: { type: string }
+                    date_of_birth: { type: string, format: date, nullable: true }
+                    age_years: { type: integer, nullable: true }
+              examples:
+                sample:
+                  value:
+                    - user_id: 00000000-0000-0000-0000-000000000000
+                      email: user@example.com
+                      name: User
+                      plan: trial
+                      role: user
+                      status: active
+                      date_of_birth: '1998-05-12'
+                      age_years: 27
+                      current_weight_kg: 82.5
+                      target_weight_kg: 75
+                      height_cm: 180
+                      bmi: 25.5
+                      bmi_status: overweight
+                      last_weight_log_at: '2026-04-25T10:00:00Z'
+                      active_challenge_slug: beginner-30
+                      active_challenge_title: Beginner 30
+                      challenge_level: beginner
+                      challenge_status: active
+                      challenge_current_day: 3
+                      challenge_progress_percent: 10
+                      streak_days: 7
+  /rest/v1/rpc/api_staff_upsert_subscription_package:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: api_staff_upsert_subscription_package
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/api_staff_upsert_subscription_package_variant:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: api_staff_upsert_subscription_package_variant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/api_staff_set_subscription_package_entitlements:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: api_staff_set_subscription_package_entitlements
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/api_staff_assign_user_package:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: api_staff_assign_user_package
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/api_staff_revoke_user_package:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: api_staff_revoke_user_package
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              params:
+                value:
+                  p_user_id: 00000000-0000-0000-0000-000000000000
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/api_staff_delete_subscription_package:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: api_staff_delete_subscription_package
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              params:
+                value:
+                  p_package_id: 00000000-0000-0000-0000-000000000000
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/api_staff_soft_delete_user:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: api_staff_soft_delete_user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              params:
+                value:
+                  p_user_id: 00000000-0000-0000-0000-000000000000
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/calculate_bmi:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: calculate_bmi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              params:
+                value:
+                  height_cm: 180
+                  weight_kg: 80
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/calculate_bmi_status:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: calculate_bmi_status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              params:
+                value:
+                  bmi_value: 24.7
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/is_admin:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: is_admin
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/is_coach:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: is_coach
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/current_profile_role:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: current_profile_role
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonObject'
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/is_staff_user:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: is_staff_user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              params:
+                value:
+                  target: 00000000-0000-0000-0000-000000000000
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/profile_feature_enabled:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: profile_feature_enabled
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              params:
+                value:
+                  p_user_id: 00000000-0000-0000-0000-000000000000
+                  p_feature_key: coach_content
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+  /rest/v1/rpc/profile_coach_content_entitled:
+    post:
+      tags:
+      - RPC
+      - Admin
+      summary: profile_coach_content_entitled
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
+              params:
+                value:
+                  p_user_id: 00000000-0000-0000-0000-000000000000
+      responses:
+        '200':
+          $ref: '#/components/responses/JsonAny'
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: apikey
+      description: Set apikey to your Supabase anon/service-role key.
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 'Authorization: Bearer {access_token}'
+  parameters:
+    Select:
+      name: select
+      in: query
+      required: false
+      schema:
+        type: string
+      description: PostgREST select.
+    Order:
+      name: order
+      in: query
+      required: false
+      schema:
+        type: string
+      description: PostgREST order.
+    Limit:
+      name: limit
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+      description: PostgREST limit
+    Offset:
+      name: offset
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+      description: PostgREST offset
+    PreferReturnRepresentation:
+      name: Prefer
+      in: header
+      required: false
+      schema:
+        type: string
+      description: Prefer header.
+  schemas:
+    JsonObject:
+      type: object
+      additionalProperties: true
+    JsonArray:
+      type: array
+      items:
+        $ref: '#/components/schemas/JsonObject'
+  responses:
+    JsonAny:
+      description: JSON (any)
+      content:
+        application/json:
+          schema:
+            oneOf:
+            - $ref: '#/components/schemas/JsonObject'
+            - $ref: '#/components/schemas/JsonArray'
+    JsonArray:
+      description: JSON array
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/JsonArray'

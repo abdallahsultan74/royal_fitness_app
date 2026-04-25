@@ -12,6 +12,7 @@ class UserProfile {
     this.featureFlags = const <String, dynamic>{},
     this.photoUrl,
     this.whatsappPhone,
+    this.dateOfBirth,
     this.heightCm,
     this.currentWeightKg,
     this.targetWeightKg,
@@ -33,12 +34,24 @@ class UserProfile {
   final Map<String, dynamic> featureFlags;
   final String? photoUrl;
   final String? whatsappPhone;
+  final DateTime? dateOfBirth;
   final double? heightCm;
   final double? currentWeightKg;
   final double? targetWeightKg;
   final double? bmi;
   final String? bmiStatus;
   final DateTime? lastWeightLogAt;
+
+  int? get ageYears {
+    final dob = dateOfBirth;
+    if (dob == null) return null;
+    final now = DateTime.now();
+    var years = now.year - dob.year;
+    final hadBirthdayThisYear =
+        (now.month > dob.month) || (now.month == dob.month && now.day >= dob.day);
+    if (!hadBirthdayThisYear) years -= 1;
+    return years < 0 ? 0 : years;
+  }
 
   UserProfile copyWith({
     String? name,
@@ -51,6 +64,7 @@ class UserProfile {
     Map<String, dynamic>? featureFlags,
     String? photoUrl,
     String? whatsappPhone,
+    DateTime? dateOfBirth,
     double? heightCm,
     double? currentWeightKg,
     double? targetWeightKg,
@@ -71,6 +85,7 @@ class UserProfile {
       featureFlags: featureFlags ?? this.featureFlags,
       photoUrl: photoUrl ?? this.photoUrl,
       whatsappPhone: whatsappPhone ?? this.whatsappPhone,
+      dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       heightCm: heightCm ?? this.heightCm,
       currentWeightKg: currentWeightKg ?? this.currentWeightKg,
       targetWeightKg: targetWeightKg ?? this.targetWeightKg,

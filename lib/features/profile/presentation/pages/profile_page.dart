@@ -25,17 +25,20 @@ class _ProfilePageState extends State<ProfilePage> {
   final _progressRepo = ProgressRepository();
   final _name = TextEditingController();
   final _whatsapp = TextEditingController();
+  final _dob = TextEditingController();
   final _height = TextEditingController();
   final _weight = TextEditingController();
   final _target = TextEditingController();
   bool _saving = false;
   String? _filledForUid;
   int _debugProfileBuild = 0;
+  DateTime? _selectedDob;
 
   @override
   void dispose() {
     _name.dispose();
     _whatsapp.dispose();
+    _dob.dispose();
     _height.dispose();
     _weight.dispose();
     _target.dispose();
@@ -45,9 +48,31 @@ class _ProfilePageState extends State<ProfilePage> {
   void _fillFrom(UserProfile p) {
     _name.text = p.name;
     _whatsapp.text = p.whatsappPhone ?? '';
+    final dob = p.dateOfBirth;
+    _selectedDob = dob;
+    _dob.text = dob == null
+        ? ''
+        : '${dob.year.toString().padLeft(4, '0')}-${dob.month.toString().padLeft(2, '0')}-${dob.day.toString().padLeft(2, '0')}';
     _height.text = p.heightCm?.toStringAsFixed(0) ?? '';
     _weight.text = p.currentWeightKg?.toStringAsFixed(1) ?? '';
     _target.text = p.targetWeightKg?.toStringAsFixed(1) ?? '';
+  }
+
+  Future<void> _pickDob() async {
+    final now = DateTime.now();
+    final initial = _selectedDob ?? DateTime(now.year - 20, now.month, now.day);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1900, 1, 1),
+      lastDate: now,
+    );
+    if (picked == null) return;
+    setState(() {
+      _selectedDob = DateTime(picked.year, picked.month, picked.day);
+      _dob.text =
+          '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+    });
   }
 
   Future<void> _save(UserProfile current) async {
@@ -69,6 +94,7 @@ class _ProfilePageState extends State<ProfilePage> {
       await _profileRepo.upsertProfile(
         name: name,
         whatsappPhone: _whatsapp.text.trim().isEmpty ? null : _whatsapp.text.trim(),
+        dateOfBirth: _selectedDob,
         heightCm: h,
         currentWeightKg: w,
         targetWeightKg: t,
@@ -248,6 +274,23 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 const SizedBox(height: 8),
                 _field(label: 'signup_whatsapp_placeholder'.tr(), controller: _whatsapp, keyboard: TextInputType.phone),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: _pickDob,
+                  child: AbsorbPointer(
+                    child: _field(
+                      label: 'Date of birth (YYYY-MM-DD)',
+                      controller: _dob,
+                    ),
+                  ),
+                ),
+                if (p.ageYears != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Age: ${p.ageYears}',
+                    style: const TextStyle(color: AppColors.creamDim, fontSize: 12),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 _field(label: 'signup_height_placeholder'.tr(), controller: _height, keyboard: TextInputType.number),
                 const SizedBox(height: 12),

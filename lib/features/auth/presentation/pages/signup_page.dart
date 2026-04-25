@@ -23,24 +23,44 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _name = TextEditingController();
   final TextEditingController _email = TextEditingController();
   final TextEditingController _whatsapp = TextEditingController();
+  final TextEditingController _dob = TextEditingController();
   final TextEditingController _height = TextEditingController();
   final TextEditingController _weight = TextEditingController();
   final TextEditingController _targetWeight = TextEditingController();
   final TextEditingController _password = TextEditingController();
   final TextEditingController _confirmPassword = TextEditingController();
   bool _loading = false;
+  DateTime? _selectedDob;
 
   @override
   void dispose() {
     _name.dispose();
     _email.dispose();
     _whatsapp.dispose();
+    _dob.dispose();
     _height.dispose();
     _weight.dispose();
     _targetWeight.dispose();
     _password.dispose();
     _confirmPassword.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDob() async {
+    final now = DateTime.now();
+    final initial = _selectedDob ?? DateTime(now.year - 20, now.month, now.day);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1900, 1, 1),
+      lastDate: now,
+    );
+    if (picked == null) return;
+    setState(() {
+      _selectedDob = DateTime(picked.year, picked.month, picked.day);
+      _dob.text =
+          '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+    });
   }
 
   Future<void> _createAccount(BuildContext context) async {
@@ -94,6 +114,7 @@ class _SignUpPageState extends State<SignUpPage> {
         language: context.locale.languageCode,
         heightCm: heightCm,
         currentWeightKg: weightKg,
+        dateOfBirth: _selectedDob,
         targetWeightKg: targetWeightKg,
         whatsappPhone: whatsappPhone.isEmpty ? null : whatsappPhone,
       );
@@ -264,6 +285,18 @@ class _SignUpPageState extends State<SignUpPage> {
                                   controller: _whatsapp,
                                   keyboardType: TextInputType.phone,
                                   textInputAction: TextInputAction.next,
+                                ),
+                                const SizedBox(height: 12),
+                                GestureDetector(
+                                  onTap: _pickDob,
+                                  child: AbsorbPointer(
+                                    child: RoyalGlassTextField(
+                                      icon: Icons.cake_outlined,
+                                      hintText: 'Date of birth (YYYY-MM-DD)',
+                                      controller: _dob,
+                                      textInputAction: TextInputAction.next,
+                                    ),
+                                  ),
                                 ),
                                 const SizedBox(height: 12),
                                 RoyalGlassTextField(

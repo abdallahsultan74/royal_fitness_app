@@ -1,6 +1,7 @@
 # Delivery Checklist (Royal Fitness)
 
 This document is a lightweight handover checklist for **both projects**:
+
 - Mobile app: `royal_fitness_app/` (Flutter)
 - Admin dashboard: `royal_fitness_admin/` (React + Vite)
 
@@ -11,6 +12,7 @@ It is written for a developer receiving the codebase for the first time.
 ## 1) What you are receiving
 
 ### Mobile app (Flutter)
+
 - Bilingual UI (English/Arabic) via `easy_localization`
 - Supabase-backed auth + database + RPC + realtime
 - Workouts (RPC-first with local ExerciseDB fallback)
@@ -20,9 +22,11 @@ It is written for a developer receiving the codebase for the first time.
 - AdMob banner integration (Google **test** unit IDs by default)
 
 Primary docs:
+
 - `royal_fitness_app/README.md`
 
 ### Admin dashboard (React + Vite)
+
 - Bilingual UI (English/Arabic)
 - Staff-only access (admin + coach roles)
 - Dashboard metrics backed by Supabase RPCs
@@ -31,6 +35,7 @@ Primary docs:
 - Analytics page with charts and exports
 
 Primary docs:
+
 - `royal_fitness_admin/README.md`
 - `royal_fitness_admin/SUPABASE_SETUP.md`
 
@@ -39,11 +44,13 @@ Primary docs:
 ## 2) Environment prerequisites
 
 ### Mobile (Flutter)
+
 - Flutter SDK installed and available in PATH
 - Android Studio + SDK tools (for Android builds)
 - Xcode (macOS only, for iOS builds)
 
 ### Admin (Web)
+
 - Node.js 18+ (recommended)
 - npm
 
@@ -54,14 +61,17 @@ Primary docs:
 Both the mobile app and admin dashboard are intended to point to the **same Supabase project**.
 
 Database migrations and seed:
+
 - `royal_fitness_app/supabase/migrations/`
 - `royal_fitness_app/supabase/seed.sql`
 - `royal_fitness_admin/supabase/migrations/` (migration history aligned)
 
 Setup instructions:
+
 - `royal_fitness_admin/SUPABASE_SETUP.md`
 
 Important security rule:
+
 - Never ship `service_role` keys in the mobile app or web admin. Use Edge Functions for privileged operations.
 
 ---
@@ -94,6 +104,7 @@ npx vite
 ```
 
 Required `.env` values for live mode:
+
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
@@ -129,6 +140,7 @@ flutter build appbundle --release --dart-define=CLIENT_DELIVERY=true --tree-shak
 ```
 
 Output:
+
 - `royal_fitness_app/build/app/outputs/bundle/release/app-release.aab`
 
 ### Manual testing/distribution (smaller APKs)
@@ -140,11 +152,13 @@ flutter build apk --release --dart-define=CLIENT_DELIVERY=true --split-per-abi -
 ```
 
 Outputs:
+
 - `royal_fitness_app/build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk`
 - `royal_fitness_app/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk`
 - `royal_fitness_app/build/app/outputs/flutter-apk/app-x86_64-release.apk`
 
 Debug symbols (for de-obfuscation / crash reporting):
+
 - `royal_fitness_app/build/symbols/`
 
 ---
@@ -152,6 +166,7 @@ Debug symbols (for de-obfuscation / crash reporting):
 ## 7) Deployment (admin dashboard)
 
 ### Vercel (typical)
+
 - Create a Vercel project pointing to `royal_fitness_admin/`
 - Set environment variables:
   - `VITE_SUPABASE_URL`
@@ -160,17 +175,18 @@ Debug symbols (for de-obfuscation / crash reporting):
 - Output directory: `dist`
 
 ### GitHub Pages (optional)
+
 See `royal_fitness_admin/README.md`.
 
 ---
 
 ## 8) Final handover checklist
 
-- [ ] Supabase project is accessible (credentials + dashboard access)
-- [ ] `.env` for admin is set and verified in live mode
-- [ ] Mobile app Supabase config verified in `lib/core/backend/supabase_config.dart`
-- [ ] Android signing keys configured for release distribution (not debug signing)
-- [ ] `app-release.aab` generated and stored in a shared delivery folder
-- [ ] ABI-split APK generated for quick QA installs (optional)
-- [ ] Debug symbols archived (`build/symbols/`)
+- Supabase project is accessible (credentials + dashboard access)
+- `.env` for admin is set and verified in live mode
+- Mobile app Supabase config verified in `lib/core/backend/supabase_config.dart`
+- Android signing keys configured for release distribution (not debug signing)
+- `app-release.aab` generated and stored in a shared delivery folder
+- ABI-split APK generated for quick QA installs (optional)
+- Debug symbols archived (`build/symbols/`)
 
