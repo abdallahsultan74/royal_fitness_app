@@ -126,14 +126,19 @@ List<LocalExerciseItem> _parseExercises(dynamic raw) {
     final nameAr = m['name_ar']?.toString() ?? name;
     final minutes = (m['minutes'] as num? ?? 5).toInt().clamp(1, 120);
     final cal = (m['calories'] as num? ?? minutes * 8).toInt();
-    final mediaType = (m['media_type']?.toString() ?? m['mediaType']?.toString() ?? 'image')
-        .toLowerCase();
-    final safeMedia = mediaType == 'video' ? 'video' : 'image';
     final imageUrl = m['image_url']?.toString() ??
         m['gif']?.toString() ??
         m['media_url']?.toString() ??
         m['image_asset']?.toString() ??
         'assets/exercisedb_v1_sample/gifs_360x360/05Cf2v8.gif';
+    final mediaUrl = m['media_url']?.toString() ?? '';
+    final mediaTypeRaw = (m['media_type']?.toString() ?? m['mediaType']?.toString() ?? '')
+        .toLowerCase();
+    final safeMedia = _inferMediaType(
+      mediaTypeRaw: mediaTypeRaw,
+      imageUrl: imageUrl,
+      mediaUrl: mediaUrl,
+    );
     final instructions = _instructionLinesFromJson(m['instructions']);
     list.add(
       LocalExerciseItem(
@@ -149,6 +154,7 @@ List<LocalExerciseItem> _parseExercises(dynamic raw) {
         rating: (m['rating'] as num? ?? 4.5).toDouble(),
         instructions: instructions,
         mediaType: safeMedia,
+        thumbnailUrl: m['thumbnail_url']?.toString(),
         audioUrl: m['audio_url']?.toString(),
         ttsScript: m['tts_script']?.toString(),
         ttsScriptAr: m['tts_script_ar']?.toString(),
@@ -157,6 +163,34 @@ List<LocalExerciseItem> _parseExercises(dynamic raw) {
     i++;
   }
   return list;
+}
+
+String _inferMediaType({
+  required String mediaTypeRaw,
+  required String imageUrl,
+  required String mediaUrl,
+}) {
+  final raw = mediaTypeRaw.trim().toLowerCase();
+  if (raw == 'video') return 'video';
+  if (raw == 'image') return 'image';
+  if (_looksLikeVideoLink(mediaUrl) || _looksLikeVideoLink(imageUrl)) return 'video';
+  return 'image';
+}
+
+bool _looksLikeVideoLink(String url) {
+  final s = url.trim().toLowerCase();
+  if (s.isEmpty) return false;
+  if (s.contains('youtube.com') || s.contains('youtu.be') || s.contains('vimeo.com')) {
+    return true;
+  }
+  return s.endsWith('.mp4') ||
+      s.endsWith('.webm') ||
+      s.endsWith('.mov') ||
+      s.endsWith('.m3u8') ||
+      s.contains('.mp4?') ||
+      s.contains('.webm?') ||
+      s.contains('.mov?') ||
+      s.contains('.m3u8?');
 }
 
 /// Static rows when [jsonPlan] has no parsable slots (matches previous Home UI).
