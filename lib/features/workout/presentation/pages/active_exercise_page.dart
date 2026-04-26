@@ -68,6 +68,8 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
   ];
 
   LocalExerciseItem get _ex => _items[_current];
+  String get _effectiveMediaType =>
+      _inferMediaType(_ex.mediaType, _ex.imageAssetPath);
   int get _duration => _ex.durationSec;
   bool get _isArabic => context.locale.languageCode == 'ar';
   double get _progressPct =>
@@ -581,7 +583,7 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
                               child: Stack(
                                 fit: StackFit.expand,
                                 children: [
-                                  _exerciseImage(_ex.imageAssetPath, _ex.mediaType),
+                                  _exerciseImage(_ex.imageAssetPath, _effectiveMediaType),
                                   const DecoratedBox(
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
@@ -595,7 +597,7 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
                                       ),
                                     ),
                                   ),
-                                  if (_ex.mediaType == 'video')
+                                  if (_effectiveMediaType == 'video')
                                     Positioned.fill(
                                       child: Material(
                                         color: Colors.transparent,
@@ -697,7 +699,7 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
                                           child: Material(
                                             color: Colors.transparent,
                                             child: InkWell(
-                                              onTap: _ex.mediaType == 'video'
+                                              onTap: _effectiveMediaType == 'video'
                                                   ? null
                                                   : () => _setPlaying(true),
                                               borderRadius:
@@ -1077,6 +1079,31 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => _imageFallback(),
     );
+  }
+
+  String _inferMediaType(String rawType, String url) {
+    final r = rawType.trim().toLowerCase();
+    if (r == 'video') return 'video';
+    if (r == 'image') return 'image';
+    return _looksLikeVideoLink(url) ? 'video' : 'image';
+  }
+
+  bool _looksLikeVideoLink(String url) {
+    final s = url.trim().toLowerCase();
+    if (s.isEmpty) return false;
+    final u = Uri.tryParse(s);
+    final host = (u?.host ?? '').toLowerCase().replaceFirst('www.', '');
+    if (host == 'youtu.be' || host.endsWith('youtube.com') || host.endsWith('vimeo.com')) {
+      return true;
+    }
+    return s.endsWith('.mp4') ||
+        s.endsWith('.webm') ||
+        s.endsWith('.mov') ||
+        s.endsWith('.m3u8') ||
+        s.contains('.mp4?') ||
+        s.contains('.webm?') ||
+        s.contains('.mov?') ||
+        s.contains('.m3u8?');
   }
 
   bool _isDirectVideoUrl(String url) {
