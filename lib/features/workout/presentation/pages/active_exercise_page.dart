@@ -1003,17 +1003,41 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
 
   Widget _exerciseImage(String path, String mediaType) {
     if (mediaType == 'video') {
+      final thumb = _ex.thumbnailUrl ?? _videoThumbUrl(path);
+      if (thumb != null && thumb.trim().isNotEmpty) {
+        return Image.network(
+          thumb.trim(),
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _videoFallback(),
+        );
+      }
+      // If admin provided a direct video file URL, show a lightweight preview.
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        final lower = path.toLowerCase();
+        final isDirect = lower.endsWith('.mp4') ||
+            lower.endsWith('.webm') ||
+            lower.endsWith('.mov') ||
+            lower.endsWith('.m3u8') ||
+            lower.contains('.mp4?') ||
+            lower.contains('.webm?') ||
+            lower.contains('.mov?') ||
+            lower.contains('.m3u8?');
+        if (isDirect) {
+          return Container(
+            color: AppColors.obsidian,
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.play_circle_fill,
+              color: AppColors.accentGold,
+              size: 40,
+            ),
+          );
+        }
+      }
       return Container(
         color: AppColors.obsidian,
         alignment: Alignment.center,
-        child: const Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.play_circle_fill, color: AppColors.accentGold, size: 40),
-            SizedBox(height: 8),
-            Text('Video exercise', style: TextStyle(color: AppColors.creamDim)),
-          ],
-        ),
+        child: _videoFallback(),
       );
     }
     if (path.startsWith('http://') || path.startsWith('https://')) {
@@ -1027,6 +1051,71 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
       path,
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => _imageFallback(),
+    );
+  }
+
+  String? _videoThumbUrl(String raw) {
+    final s = raw.trim();
+    if (s.isEmpty) return null;
+    final uri = Uri.tryParse(s);
+    final host = (uri?.host ?? '').toLowerCase().replaceFirst('www.', '');
+    if (host.contains('youtu.be') || host.contains('youtube.com')) {
+      final id = _parseYouTubeId(s);
+      if (id != null) return 'https://img.youtube.com/vi/$id/hqdefault.jpg';
+    }
+    if (host.contains('vimeo.com')) {
+      final id = _parseVimeoId(s);
+      if (id != null) return 'https://vumbnail.com/$id.jpg';
+    }
+    return null;
+  }
+
+  String? _parseYouTubeId(String raw) {
+    try {
+      final u = Uri.parse(raw);
+      final host = u.host.toLowerCase().replaceFirst('www.', '');
+      if (host == 'youtu.be') {
+        final seg = u.pathSegments.isNotEmpty ? u.pathSegments.first : null;
+        return seg?.trim().isEmpty ?? true ? null : seg!.trim();
+      }
+      if (host.endsWith('youtube.com')) {
+        final v = u.queryParameters['v'];
+        if (v != null && v.trim().isNotEmpty) return v.trim();
+        final parts = u.pathSegments;
+        final idx = parts.indexWhere((p) => p == 'shorts' || p == 'embed' || p == 'v');
+        if (idx >= 0 && idx + 1 < parts.length) {
+          final id = parts[idx + 1].trim();
+          return id.isEmpty ? null : id;
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String? _parseVimeoId(String raw) {
+    try {
+      final u = Uri.parse(raw);
+      final host = u.host.toLowerCase().replaceFirst('www.', '');
+      if (!host.endsWith('vimeo.com')) return null;
+      final parts = u.pathSegments.where((e) => e.trim().isNotEmpty).toList();
+      if (parts.isEmpty) return null;
+      final id = (parts.first == 'video' && parts.length > 1) ? parts[1] : parts.first;
+      return RegExp(r'^\d+$').hasMatch(id) ? id : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _videoFallback() {
+    return const Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.play_circle_fill, color: AppColors.accentGold, size: 40),
+        SizedBox(height: 8),
+        Text('Tap to play', style: TextStyle(color: AppColors.creamDim)),
+      ],
     );
   }
 

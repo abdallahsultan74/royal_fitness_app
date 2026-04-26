@@ -12,6 +12,7 @@ class LocalExerciseItem {
     required this.rating,
     this.instructions = const <String>[],
     this.mediaType = 'image',
+    this.thumbnailUrl,
     this.audioUrl,
     this.ttsScript,
     this.ttsScriptAr,
@@ -29,6 +30,7 @@ class LocalExerciseItem {
   final double rating;
   final List<String> instructions;
   final String mediaType; // image | video
+  final String? thumbnailUrl;
   final String? audioUrl;
   final String? ttsScript;
   final String? ttsScriptAr;

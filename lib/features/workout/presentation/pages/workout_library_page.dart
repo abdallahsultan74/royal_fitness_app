@@ -178,6 +178,14 @@ class _WorkoutLibraryPageState extends State<WorkoutLibraryPage> {
   LocalExerciseItem _mapRemoteWorkout(Map<String, dynamic> raw) {
     final levelRaw = (raw['level'] ?? '').toString();
     final level = _levelKey(levelRaw);
+    final imageUrl = (raw['image_url'] ?? '').toString();
+    final mediaUrl = (raw['media_url'] ?? '').toString();
+    final mediaTypeRaw = (raw['media_type'] ?? '').toString();
+    final inferredType = _inferMediaType(
+      mediaTypeRaw: mediaTypeRaw,
+      imageUrl: imageUrl,
+      mediaUrl: mediaUrl,
+    );
     return LocalExerciseItem(
       id: (raw['legacy_id'] ?? raw['id'] ?? '').toString(),
       name: (raw['name'] ?? 'Workout').toString(),
@@ -186,8 +194,9 @@ class _WorkoutLibraryPageState extends State<WorkoutLibraryPage> {
       minutes: _toInt(raw['minutes'], fallback: 1),
       cal: _toInt(raw['calories'], fallback: 0),
       level: level,
-      imageAssetPath: (raw['image_url'] ?? '').toString(),
-      mediaType: (raw['media_type'] ?? 'image').toString(),
+      imageAssetPath: imageUrl,
+      mediaType: inferredType,
+      thumbnailUrl: raw['thumbnail_url']?.toString(),
       exerciseSteps: _toInt(raw['exercise_steps'], fallback: 0),
       rating: _toDouble(raw['rating'], fallback: 4),
       instructions: (raw['instructions'] as List<dynamic>? ?? const <dynamic>[])
@@ -197,6 +206,35 @@ class _WorkoutLibraryPageState extends State<WorkoutLibraryPage> {
       ttsScript: raw['tts_script']?.toString(),
       ttsScriptAr: raw['tts_script_ar']?.toString(),
     );
+  }
+
+  String _inferMediaType({
+    required String mediaTypeRaw,
+    required String imageUrl,
+    required String mediaUrl,
+  }) {
+    final raw = mediaTypeRaw.trim().toLowerCase();
+    if (raw == 'video') return 'video';
+    if (raw == 'image') return 'image';
+    // Backward compatibility: some rows used to store YouTube/Vimeo in image_url.
+    if (_looksLikeVideoLink(mediaUrl) || _looksLikeVideoLink(imageUrl)) return 'video';
+    return 'image';
+  }
+
+  bool _looksLikeVideoLink(String url) {
+    final s = url.trim().toLowerCase();
+    if (s.isEmpty) return false;
+    if (s.contains('youtube.com') || s.contains('youtu.be') || s.contains('vimeo.com')) {
+      return true;
+    }
+    return s.endsWith('.mp4') ||
+        s.endsWith('.webm') ||
+        s.endsWith('.mov') ||
+        s.endsWith('.m3u8') ||
+        s.contains('.mp4?') ||
+        s.contains('.webm?') ||
+        s.contains('.mov?') ||
+        s.contains('.m3u8?');
   }
 
   int _toInt(dynamic value, {required int fallback}) {
@@ -684,11 +722,8 @@ class _WorkoutLibraryPageState extends State<WorkoutLibraryPage> {
       return Container(
         color: AppColors.obsidian,
         alignment: Alignment.center,
-        child: const Icon(
-          Icons.play_circle_fill,
-          color: AppColors.accentGold,
-          size: 30,
-        ),
+        child: const Icon(Icons.play_circle_fill,
+            color: AppColors.accentGold, size: 30),
       );
     }
     if (path.startsWith('http://') || path.startsWith('https://')) {
