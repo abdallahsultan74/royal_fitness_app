@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
 import '../theme/app_colors.dart';
@@ -20,6 +23,13 @@ class VideoPlayerPage extends StatefulWidget {
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
   VideoPlayerController? _controller;
   Object? _error;
+
+  Future<void> _setPortrait() async {
+    await SystemChrome.setPreferredOrientations(const [
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+  }
 
   @override
   void initState() {
@@ -45,6 +55,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   @override
   void dispose() {
     _controller?.dispose();
+    // Keep app orientation flexible when leaving video.
+    unawaited(_setPortrait());
     super.dispose();
   }
 

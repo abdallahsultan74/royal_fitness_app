@@ -1089,8 +1089,14 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
   }
 
   bool _looksLikeVideoLink(String url) {
-    final s = url.trim().toLowerCase();
+    var s = url.trim().toLowerCase();
     if (s.isEmpty) return false;
+    if (!s.startsWith('http://') && !s.startsWith('https://')) {
+      // Accept scheme-less links pasted from admin panel.
+      if (s.startsWith('www.')) s = 'https://$s';
+      if (s.startsWith('youtu.be/') || s.startsWith('youtube.com/')) s = 'https://$s';
+      if (s.startsWith('vimeo.com/')) s = 'https://$s';
+    }
     final u = Uri.tryParse(s);
     final host = (u?.host ?? '').toLowerCase().replaceFirst('www.', '');
     if (host == 'youtu.be' || host.endsWith('youtube.com') || host.endsWith('vimeo.com')) {
@@ -1107,8 +1113,8 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
   }
 
   bool _isDirectVideoUrl(String url) {
-    final s = url.trim().toLowerCase();
-    if (!(s.startsWith('http://') || s.startsWith('https://'))) return false;
+    var s = url.trim().toLowerCase();
+    if (!s.startsWith('http://') && !s.startsWith('https://')) return false;
     return s.endsWith('.mp4') ||
         s.endsWith('.webm') ||
         s.endsWith('.mov') ||
@@ -1120,8 +1126,12 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
   }
 
   bool _isYouTubeUrl(String url) {
-    final s = url.trim().toLowerCase();
+    var s = url.trim().toLowerCase();
     if (s.isEmpty) return false;
+    if (!s.startsWith('http://') && !s.startsWith('https://')) {
+      if (s.startsWith('www.')) s = 'https://$s';
+      if (s.startsWith('youtu.be/') || s.startsWith('youtube.com/')) s = 'https://$s';
+    }
     final u = Uri.tryParse(s);
     final host = (u?.host ?? '').toLowerCase().replaceFirst('www.', '');
     return host == 'youtu.be' || host.endsWith('youtube.com');
