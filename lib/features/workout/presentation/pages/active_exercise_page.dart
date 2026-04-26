@@ -8,6 +8,7 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../../../core/common_widgets/royal_geometric_background.dart';
 import '../../../../core/common_widgets/royal_glass_panel.dart';
+import '../../../../core/common_widgets/video_player_page.dart';
 import '../../../../core/common_widgets/video_webview_page.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/workout_repository.dart';
@@ -601,11 +602,23 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
                                           onTap: () {
                                             final url = _ex.imageAssetPath.trim();
                                             if (url.isEmpty) return;
+                                            final title = _ex.displayName(context.locale.languageCode);
+                                            if (_isDirectVideoUrl(url)) {
+                                              Navigator.of(context).push<void>(
+                                                MaterialPageRoute<void>(
+                                                  builder: (_) => VideoPlayerPage(
+                                                    url: url,
+                                                    title: title,
+                                                  ),
+                                                ),
+                                              );
+                                              return;
+                                            }
                                             Navigator.of(context).push<void>(
                                               MaterialPageRoute<void>(
                                                 builder: (_) => VideoWebViewPage(
                                                   url: url,
-                                                  title: _ex.displayName(context.locale.languageCode),
+                                                  title: title,
                                                 ),
                                               ),
                                             );
@@ -1052,6 +1065,19 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => _imageFallback(),
     );
+  }
+
+  bool _isDirectVideoUrl(String url) {
+    final s = url.trim().toLowerCase();
+    if (!(s.startsWith('http://') || s.startsWith('https://'))) return false;
+    return s.endsWith('.mp4') ||
+        s.endsWith('.webm') ||
+        s.endsWith('.mov') ||
+        s.endsWith('.m3u8') ||
+        s.contains('.mp4?') ||
+        s.contains('.webm?') ||
+        s.contains('.mov?') ||
+        s.contains('.m3u8?');
   }
 
   String? _videoThumbUrl(String raw) {
