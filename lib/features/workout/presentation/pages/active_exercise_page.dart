@@ -10,6 +10,7 @@ import '../../../../core/common_widgets/royal_geometric_background.dart';
 import '../../../../core/common_widgets/royal_glass_panel.dart';
 import '../../../../core/common_widgets/video_player_page.dart';
 import '../../../../core/common_widgets/video_webview_page.dart';
+import '../../../../core/common_widgets/youtube_player_page.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/workout_repository.dart';
 import '../../../auth/presentation/widgets/royal_gold_shimmer.dart';
@@ -603,6 +604,17 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
                                             final url = _ex.imageAssetPath.trim();
                                             if (url.isEmpty) return;
                                             final title = _ex.displayName(context.locale.languageCode);
+                                            if (_isYouTubeUrl(url)) {
+                                              Navigator.of(context).push<void>(
+                                                MaterialPageRoute<void>(
+                                                  builder: (_) => YouTubePlayerPage(
+                                                    url: url,
+                                                    title: title,
+                                                  ),
+                                                ),
+                                              );
+                                              return;
+                                            }
                                             if (_isDirectVideoUrl(url)) {
                                               Navigator.of(context).push<void>(
                                                 MaterialPageRoute<void>(
@@ -1078,6 +1090,14 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
         s.contains('.webm?') ||
         s.contains('.mov?') ||
         s.contains('.m3u8?');
+  }
+
+  bool _isYouTubeUrl(String url) {
+    final s = url.trim().toLowerCase();
+    if (s.isEmpty) return false;
+    final u = Uri.tryParse(s);
+    final host = (u?.host ?? '').toLowerCase().replaceFirst('www.', '');
+    return host == 'youtu.be' || host.endsWith('youtube.com');
   }
 
   String? _videoThumbUrl(String raw) {
