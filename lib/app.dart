@@ -113,9 +113,8 @@ class _InitialGateState extends State<_InitialGate> {
               );
             }
             final role = roleSnap.data;
-            if (role == 'admin' || role == 'coach') {
-              return const _StaffBlockedGate();
-            }
+            final isStaff = role == 'admin' || role == 'coach';
+            if (isStaff) return const _StaffBlockedGate();
             return const MainShell();
           },
         );

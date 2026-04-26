@@ -19,6 +19,7 @@
   "auth_missing_credentials": "Please enter your email and password.",
   "auth_unexpected_error": "Something went wrong. Please try again.",
   "auth_staff_not_allowed": "This account can only sign in to the Admin Panel.",
+  "auth_user_not_allowed": "This account can only sign in to the mobile app.",
   "signup_title": "Create Account",
   "signup_subtitle": "Join and start your royal training journey",
   "signup_name_placeholder": "Full Name",

@@ -109,6 +109,7 @@ class ProfileRepository {
     String? photoUrl,
     String? whatsappPhone,
     DateTime? dateOfBirth,
+    bool clearDateOfBirth = false,
     double? heightCm,
     double? currentWeightKg,
     double? targetWeightKg,
@@ -128,7 +129,9 @@ class ProfileRepository {
       if (photoUrl != null) 'photo_url': photoUrl,
       // Allow clearing the number by sending empty string -> null
       if (whatsappPhone != null) 'whatsapp_phone': whatsappPhone.trim().isEmpty ? null : whatsappPhone.trim(),
-      if (dateOfBirth != null) 'date_of_birth': dateOfBirth.toIso8601String().substring(0, 10),
+      if (clearDateOfBirth) 'date_of_birth': null,
+      if (!clearDateOfBirth && dateOfBirth != null)
+        'date_of_birth': dateOfBirth.toIso8601String().substring(0, 10),
       if (heightCm != null) 'height_cm': heightCm,
       if (currentWeightKg != null) 'current_weight_kg': currentWeightKg,
       if (targetWeightKg != null) 'target_weight_kg': targetWeightKg,

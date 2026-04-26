@@ -275,14 +275,36 @@ class _ProfilePageState extends State<ProfilePage> {
                 const SizedBox(height: 8),
                 _field(label: 'signup_whatsapp_placeholder'.tr(), controller: _whatsapp, keyboard: TextInputType.phone),
                 const SizedBox(height: 16),
-                GestureDetector(
-                  onTap: _pickDob,
-                  child: AbsorbPointer(
-                    child: _field(
-                      label: 'Date of birth (YYYY-MM-DD)',
-                      controller: _dob,
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _pickDob,
+                        child: AbsorbPointer(
+                          child: _field(
+                            label: 'Date of birth (YYYY-MM-DD)',
+                            controller: _dob,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: _dob.text.trim().isEmpty
+                          ? null
+                          : () async {
+                              setState(() {
+                                _selectedDob = null;
+                                _dob.text = '';
+                              });
+                              await _profileRepo.upsertProfile(clearDateOfBirth: true);
+                              if (!mounted) return;
+                              _snack('Saved');
+                            },
+                      icon: const Icon(Icons.clear, color: AppColors.creamDim),
+                      tooltip: 'Clear',
+                    ),
+                  ],
                 ),
                 if (p.ageYears != null) ...[
                   const SizedBox(height: 8),

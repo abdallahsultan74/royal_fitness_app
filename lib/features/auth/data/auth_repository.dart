@@ -68,7 +68,8 @@ class AuthRepository {
     final uid = _auth.currentUser?.id;
     if (uid == null) return;
     final role = await _profileRepository.fetchProfileRole(uid: uid);
-    if (role == 'admin' || role == 'coach') {
+    final isStaff = role == 'admin' || role == 'coach';
+    if (isStaff) {
       await signOut();
       throw Exception('STAFF_NOT_ALLOWED');
     }
@@ -158,6 +159,7 @@ class AuthRepository {
           email: emailTrim,
           token: normalized,
         );
+        await _enforceMobileUserOnly();
         return;
       } on AuthException catch (e) {
         last = e;

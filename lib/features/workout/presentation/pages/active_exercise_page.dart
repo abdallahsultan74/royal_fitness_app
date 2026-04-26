@@ -8,6 +8,7 @@ import 'package:just_audio/just_audio.dart';
 
 import '../../../../core/common_widgets/royal_geometric_background.dart';
 import '../../../../core/common_widgets/royal_glass_panel.dart';
+import '../../../../core/common_widgets/video_webview_page.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/workout_repository.dart';
 import '../../../auth/presentation/widgets/royal_gold_shimmer.dart';
@@ -592,6 +593,43 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
                                       ),
                                     ),
                                   ),
+                                  if (_ex.mediaType == 'video')
+                                    Positioned.fill(
+                                      child: Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          onTap: () {
+                                            final url = _ex.imageAssetPath.trim();
+                                            if (url.isEmpty) return;
+                                            Navigator.of(context).push<void>(
+                                              MaterialPageRoute<void>(
+                                                builder: (_) => VideoWebViewPage(
+                                                  url: url,
+                                                  title: _ex.displayName(context.locale.languageCode),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          child: Container(
+                                            color: const Color.fromRGBO(0, 0, 0, 0.35),
+                                            alignment: Alignment.center,
+                                            child: Container(
+                                              width: 72,
+                                              height: 72,
+                                              decoration: const BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: Color.fromRGBO(212, 175, 55, 0.9),
+                                              ),
+                                              child: const Icon(
+                                                Icons.play_arrow,
+                                                size: 44,
+                                                color: AppColors.emeraldDark,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                                   Positioned(
                                     left: 20,
                                     right: 20,
@@ -634,7 +672,9 @@ class _ActiveExercisePageState extends State<ActiveExercisePage> {
                                           child: Material(
                                             color: Colors.transparent,
                                             child: InkWell(
-                                              onTap: () => _setPlaying(true),
+                                              onTap: _ex.mediaType == 'video'
+                                                  ? null
+                                                  : () => _setPlaying(true),
                                               borderRadius:
                                                   BorderRadius.circular(999),
                                               child: Ink(

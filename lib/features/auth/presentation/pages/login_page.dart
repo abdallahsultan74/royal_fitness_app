@@ -4,6 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/config/build_config.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../data/auth_repository.dart';
 import '../../../shell/presentation/main_shell.dart';
@@ -72,6 +73,8 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       if (e.toString().contains('STAFF_NOT_ALLOWED')) {
         _showError('auth_staff_not_allowed'.tr());
+      } else if (e.toString().contains('USER_NOT_ALLOWED')) {
+        _showError('auth_user_not_allowed'.tr());
       } else {
         _showError('auth_unexpected_error'.tr());
       }
@@ -298,51 +301,53 @@ class _LoginPageState extends State<LoginPage> {
                                 const SizedBox(height: 24),
                                 Padding(
                                   padding: const EdgeInsets.only(top: 24),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          'login_no_account_prefix'.tr(),
-                                          textAlign: TextAlign.center,
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                color: AppColors.creamDim,
-                                                fontSize: 13,
+                                  child: BuildConfig.clientDelivery
+                                      ? Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Flexible(
+                                              child: Text(
+                                                'login_no_account_prefix'.tr(),
+                                                textAlign: TextAlign.center,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .bodyMedium
+                                                    ?.copyWith(
+                                                      color: AppColors.creamDim,
+                                                      fontSize: 13,
+                                                    ),
                                               ),
-                                        ),
-                                      ),
-                                      TextButton(
-                                        style: TextButton.styleFrom(
-                                          padding:
-                                              const EdgeInsetsDirectional.only(
-                                            start: 4,
-                                          ),
-                                          minimumSize: Size.zero,
-                                          tapTargetSize:
-                                              MaterialTapTargetSize.shrinkWrap,
-                                        ),
-                                        onPressed: () {
-                                          Navigator.of(context).push<void>(
-                                            MaterialPageRoute<void>(
-                                              builder: (_) => const SignUpPage(),
                                             ),
-                                          );
-                                        },
-                                        child: Text(
-                                          'login_sign_up'.tr(),
-                                          style: const TextStyle(
-                                            color: AppColors.accentGold,
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                                            TextButton(
+                                              style: TextButton.styleFrom(
+                                                padding:
+                                                    const EdgeInsetsDirectional.only(
+                                                  start: 4,
+                                                ),
+                                                minimumSize: Size.zero,
+                                                tapTargetSize:
+                                                    MaterialTapTargetSize.shrinkWrap,
+                                              ),
+                                              onPressed: () {
+                                                Navigator.of(context).push<void>(
+                                                  MaterialPageRoute<void>(
+                                                    builder: (_) => const SignUpPage(),
+                                                  ),
+                                                );
+                                              },
+                                              child: Text(
+                                                'login_sign_up'.tr(),
+                                                style: const TextStyle(
+                                                  color: AppColors.accentGold,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : const SizedBox.shrink(),
                                 ),
                               ],
                             ),
